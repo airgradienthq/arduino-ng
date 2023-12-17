@@ -9,22 +9,21 @@
  *
  */
 
-#include "s8.h"
-#include "../bsp/dprint.h"
+#include "SenseAirS8.h"
 #if defined(ESP8266)
 #include <SoftwareSerial.h>
 #else
 #endif
 
-// AirPrintTagDef(CO2_S8);
+// AirPrintTagDef(SenseAirS8);
 #if defined(ESP8266)
 /**
  * @brief Construct a new co2 s8::co2 s8 object
  *
- * @param def AirGradient board define @ref AirGradientBoardDef_t
+ * @param def AirGradient board define @ref AirGradientBoardType_t
  * @param _debugStream Serial print debug log, NULL if don't use
  */
-CO2_S8::CO2_S8(AirGradientBoardDef_t def, Stream *_debugStream) : _debugStream(_debugStream), _boardDef(def)
+SenseAirS8::SenseAirS8(AirGradientBoardType_t def, Stream *_debugStream) : _debugStream(_debugStream), _boardDef(def)
 {
 }
 #endif
@@ -32,9 +31,9 @@ CO2_S8::CO2_S8(AirGradientBoardDef_t def, Stream *_debugStream) : _debugStream(_
 /**
  * @brief Construct a new co2 s8::co2 s8 object
  *
- * @param def AirGradient board define @ref AirGradientBoardDef_t
+ * @param def AirGradient board define @ref AirGradientBoardType_t
  */
-CO2_S8::CO2_S8(AirGradientBoardDef_t def) : _boardDef(def)
+SenseAirS8::SenseAirS8(AirGradientBoardType_t def) : _boardDef(def)
 {
 }
 
@@ -43,11 +42,11 @@ CO2_S8::CO2_S8(AirGradientBoardDef_t def) : _boardDef(def)
  * @brief Init sensor
  * @return true = success, otherwise is failure
  */
-bool CO2_S8::begin(void)
+bool SenseAirS8::begin(void)
 {
   if (this->_isInit)
   {
-    AirPrintf("Initialized, Call end() then try again");
+    AgLog("Initialized, Call end() then try again");
     return true;
   }
   
@@ -61,7 +60,7 @@ bool CO2_S8::begin(void)
  * @param _debugStream Serial print debug log, NULL if don't use
  * @return true = success, otherwise is failure
  */
-bool CO2_S8::begin(Stream *_debugStream)
+bool SenseAirS8::begin(Stream *_debugStream)
 {
   this->_debugStream = _debugStream;
   return this->begin();
@@ -74,11 +73,11 @@ bool CO2_S8::begin(Stream *_debugStream)
  * @return true Success
  * @return false Failure
  */
-bool CO2_S8::begin(HardwareSerial* serial)
+bool SenseAirS8::begin(HardwareSerial* serial)
 {
   if(serial == NULL)
   {
-    AirPrintf("param invalid: null");
+    AgLog("param invalid: null");
     return false;
   }
 
@@ -92,16 +91,16 @@ bool CO2_S8::begin(HardwareSerial* serial)
  * @brief De-Initialize sensor and release peripheral resource
  *
  */
-void CO2_S8::end(void)
+void SenseAirS8::end(void)
 {
   if (this->_isInit == false)
   {
-    AirPrintf("Senor is not initialized");
+    AgLog("Senor is not initialized");
     return;
   }
 
   // Deinit
-  AirPrintf("De-Inititlized");
+  AgLog("De-Inititlized");
 }
 
 /**
@@ -110,7 +109,7 @@ void CO2_S8::end(void)
  * @return true
  * @return false
  */
-bool CO2_S8::isReady(void)
+bool SenseAirS8::isReady(void)
 {
   if (this->isInit() == false)
   {
@@ -137,7 +136,7 @@ bool CO2_S8::isReady(void)
  *
  * @return int -1 if failure
  */
-int CO2_S8::getRaw(void)
+int SenseAirS8::getRaw(void)
 {
   if (this->isInit() == false)
   {
@@ -152,7 +151,7 @@ int CO2_S8::getRaw(void)
  * @param samples Average number of samples
  * @return int data (ppm)
  */
-int CO2_S8::getCO2(int numberOfSamplesToTake)
+int SenseAirS8::getCO2(int numberOfSamplesToTake)
 {
   if (this->isInit() == false)
   {
@@ -161,7 +160,7 @@ int CO2_S8::getCO2(int numberOfSamplesToTake)
 
   if (numberOfSamplesToTake <= 0)
   {
-    AirPrintf("samples must be larger than '0'");
+    AgLog("samples must be larger than '0'");
     return -2;
   }
 
@@ -172,13 +171,13 @@ int CO2_S8::getCO2(int numberOfSamplesToTake)
     int co2AsPpm = this->getRaw();
     if (co2AsPpm > 300 && co2AsPpm < 10000)
     {
-      AirPrintf("CO2 read success %d", co2AsPpm);
+      AgLog("CO2 read success %d", co2AsPpm);
       successfulSamplesCounter++;
       co2AsPpmSum += co2AsPpm;
     }
     else
     {
-      AirPrintf("CO2 read failed with %d", co2AsPpm);
+      AgLog("CO2 read failed with %d", co2AsPpm);
     }
 
     // without delay we get a few 10ms spacing, add some more
@@ -191,13 +190,13 @@ int CO2_S8::getCO2(int numberOfSamplesToTake)
 /**
  * @brief Init sensor with BSP
  *
- * @param bsp AirGradient BSP @ref AirGradientBSP_t
+ * @param bsp AirGradient BSP @ref AirGradientBsp_t
  * @return true
  * @return false
  */
-bool CO2_S8::init(const AirGradientBSP_t *bsp)
+bool SenseAirS8::init(const AirGradientBsp_t *bsp)
 {
-  return this->init(bsp->CO2_S8.uart_tx_pin, bsp->CO2_S8.uart_rx_pin);
+  return this->init(bsp->SenseAirS8.uart_tx_pin, bsp->SenseAirS8.uart_rx_pin);
 }
 
 /**
@@ -207,23 +206,23 @@ bool CO2_S8::init(const AirGradientBSP_t *bsp)
  * @param rxPin UART RX pin
  * @return true = success, otherwise failure
  */
-bool CO2_S8::init(int txPin, int rxPin)
+bool SenseAirS8::init(int txPin, int rxPin)
 {
   return this->init(txPin, rxPin, 9600);
 }
 
-bool CO2_S8::_begin(void)
+bool SenseAirS8::_begin(void)
 {
-  const AirGradientBSP_t *bsp = BoardDefGetBSP(this->_boardDef);
+  const AirGradientBsp_t *bsp = AirGradientBspGet(this->_boardDef);
   if (bsp == NULL)
   {
-    AirPrintf("Board Type not supported");
+    AgLog("Board Type not supported");
     return false;
   }
 
-  if (bsp->CO2_S8.supported == false)
+  if (bsp->SenseAirS8.supported == false)
   {
-    AirPrintf("Board is not support this sensor");
+    AgLog("Board is not support this sensor");
     return false;
   }
 
@@ -245,7 +244,7 @@ bool CO2_S8::_begin(void)
  * @param baud UART speed
  * @return true = success, otherwise failure
  */
-bool CO2_S8::init(int txPin, int rxPin, uint32_t baud)
+bool SenseAirS8::init(int txPin, int rxPin, uint32_t baud)
 {
 #if defined(ESP8266)
   SoftwareSerial *uart = new SoftwareSerial(txPin, rxPin);
@@ -262,11 +261,11 @@ bool CO2_S8::init(int txPin, int rxPin, uint32_t baud)
   int result = this->_getRaw();
   if (result < 0)
   {
-    AirPrintf("Sensor failed to initialize");
+    AgLog("Sensor failed to initialize");
     return false;
   }
 
-  AirPrintf("Sensor successfully initialized. Heating up for 10s");
+  AgLog("Sensor successfully initialized. Heating up for 10s");
   this->_lastInitTime = millis();
   return true;
 }
@@ -277,13 +276,13 @@ bool CO2_S8::init(int txPin, int rxPin, uint32_t baud)
  * @return true Initialized
  * @return false No-Initialized
  */
-bool CO2_S8::isInit(void)
+bool SenseAirS8::isInit(void)
 {
   if (this->_isInit)
   {
     return true;
   }
-  AirPrintf("Sensor no-initialized");
+  AgLog("Sensor no-initialized");
   return false;
 }
 
@@ -292,7 +291,7 @@ bool CO2_S8::isInit(void)
  *
  * @return int Sensor data
  */
-int CO2_S8::_getRaw(void)
+int SenseAirS8::_getRaw(void)
 {
   // Clear rx buffer
   this->_uartStream->flush();
@@ -306,7 +305,7 @@ int CO2_S8::_getRaw(void)
   int numberOfBytesWritten = this->_uartStream->write(CO2Command, commandSize);
   if (numberOfBytesWritten != commandSize)
   {
-    AirPrintf("Fail to write request");
+    AgLog("Fail to write request");
     return -2;
   }
 
@@ -317,7 +316,7 @@ int CO2_S8::_getRaw(void)
     timeoutCounter++;
     if (timeoutCounter > 10)
     {
-      AirPrintf("Timeout when reading response");
+      AgLog("Timeout when reading response");
       return -3;
     }
     delay(50);
@@ -331,7 +330,7 @@ int CO2_S8::_getRaw(void)
     {
       datapos = i;
     }
-    // AirPrintf("0x%02x", (uint8_t)CO2Response[i]);
+    // AgLog("0x%02x", (uint8_t)CO2Response[i]);
   }
 
   return CO2Response[datapos + 3] * 256 + CO2Response[datapos + 4];

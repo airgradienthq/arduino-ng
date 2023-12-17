@@ -15,8 +15,8 @@
 #ifndef _AIR_GRADIENT_H_
 #define _AIR_GRADIENT_H_
 
-#include "bsp/board_defs.h"
-#include "co2/s8.h"
-#include "pm/pms.h"
+#include "bsp/AirGradientBsp.h"
+#include "co2/SenseAirS8.h"
+#include "pm/pms5003.h"
 
 #endif /** _AIR_GRADIENT_H_ */
