@@ -21,29 +21,37 @@
  * 
  * @param def Board type @ref AirGradientBoardType_t
  */
-PMS5003::PMS5003(AirGradientBoardType_t def)
+PMS5003::PMS5003(AirGradientBoardType_t def):
+  _boardDef(def)
 {
-  this->_boardDef = def;
-  this->_debugStream = NULL;
+}
+
+/**
+ * @brief Init sensor
+ * 
+ * @param _debugStream Serial use for print debug log
+ * @return true Success
+ * @return false Failure
+ */
+bool PMS5003::begin(Stream* _debugStream)
+{
+  this->_debugStream = _debugStream;
+  return this->begin();
 }
 #else
-#endif
-
 /**
  * @brief Construct a new PMS5003::PMS5003 object
  * 
- * @param def Board type @ref AirGradientBoardType_t
- * @param stream For ESP32 this is Serial, for ESP8266 this is debug print output
+ * @param def Board define @ref AirGradientBoardType_t
+ * @param serial Serial user for communication with PMS5003, default is Serial (0)
  */
-PMS5003::PMS5003(AirGradientBoardType_t def, Stream &stream)
+PMS5003::PMS5003(AirGradientBoardType_t def, HardwareSerial& serial):
+ _boardDef(def),
+ _serial(serial)
 {
-#if defined(ESP8266)
-  this->_debugStream = &stream;
-#else
-  this->_stream = &stream;
-#endif
-  this->_boardDef = def;
+
 }
+#endif
 
 /**
  * @brief Init sensor
@@ -57,6 +65,14 @@ bool PMS5003::begin(void)
   {
     return true;
   }
+
+#if defined(ESP32)
+  if(this->_serial != Serial)
+  {
+    AgLog("Hardware serial must be Serial(0)");
+    return false;
+  }
+#endif
 
   this->bsp = AirGradientBspGet(this->_boardDef);
   if (bsp == NULL)
@@ -77,9 +93,11 @@ bool PMS5003::begin(void)
   uart->begin(PMS5003::BAUD_RATE);
   this->_stream = uart;
 #else
+  this->_serial.begin(9600);
+  this->_stream = &this->_serial;
 #endif
 
-  int timeout = 1000; /** Timeout 1 sec */
+  int timeout = 3000; /** Timeout 3 sec */
   DATA data;
   if (this->_readUntil(data, timeout) == false)
   {

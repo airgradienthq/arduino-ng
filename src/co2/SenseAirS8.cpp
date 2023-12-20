@@ -15,25 +15,13 @@
 #else
 #endif
 
-// AirPrintTagDef(SenseAirS8);
-#if defined(ESP8266)
 /**
- * @brief Construct a new co2 s8::co2 s8 object
- *
- * @param def AirGradient board define @ref AirGradientBoardType_t
- * @param _debugStream Serial print debug log, NULL if don't use
+ * @brief Construct a new Sense Air S 8:: Sense Air S 8 object
+ * 
+ * @param def 
  */
-SenseAirS8::SenseAirS8(AirGradientBoardType_t def, Stream *_debugStream) : _debugStream(_debugStream), _boardDef(def)
-{
-}
-#endif
-
-/**
- * @brief Construct a new co2 s8::co2 s8 object
- *
- * @param def AirGradient board define @ref AirGradientBoardType_t
- */
-SenseAirS8::SenseAirS8(AirGradientBoardType_t def) : _boardDef(def)
+SenseAirS8::SenseAirS8(AirGradientBoardType_t def) : 
+  _boardDef(def)
 {
 }
 
@@ -60,7 +48,7 @@ bool SenseAirS8::begin(void)
  * @param _debugStream Serial print debug log, NULL if don't use
  * @return true = success, otherwise is failure
  */
-bool SenseAirS8::begin(Stream *_debugStream)
+bool SenseAirS8::begin(Stream* _debugStream)
 {
   this->_debugStream = _debugStream;
   return this->begin();
@@ -69,24 +57,16 @@ bool SenseAirS8::begin(Stream *_debugStream)
 /**
  * @brief Init sensor 
  * 
- * @param serial Target Serial use for 
+ * @param serial Target Serial use for communication with sensor
  * @return true Success
  * @return false Failure
  */
-bool SenseAirS8::begin(HardwareSerial* serial)
+bool SenseAirS8::begin(HardwareSerial& serial)
 {
-  if(serial == NULL)
-  {
-    AgLog("param invalid: null");
-    return false;
-  }
-
-  this->_serial = serial;
+  this->_serial = &serial;
   return this->_begin();
 }
-
 #endif
-
 /**
  * @brief De-Initialize sensor and release peripheral resource
  *
@@ -123,8 +103,8 @@ bool SenseAirS8::isReady(void)
 
   uint32_t ms = (uint32_t)(millis() - this->_lastInitTime);
 
-  // Wait for 10s after init for heating up ready
-  if (ms >= 10000)
+  // Wait for 4s after init for heating up ready
+  if (ms >= 4000)
   {
     this->_isReady = true;
   }
@@ -252,12 +232,13 @@ bool SenseAirS8::init(int txPin, int rxPin, uint32_t baud)
   this->_uartStream = uart;
 #else
   this->_serial->begin(baud, SERIAL_8N1, rxPin, txPin);
-  // Serial1.begin(baud, SERIAL_8N1, rxPin, txPin);
   this->_uartStream = this->_serial;
 #endif
 
+  /** Clear ready state */
   this->_isReady = false;
 
+  /** Get sensor data to check communication */
   int result = this->_getRaw();
   if (result < 0)
   {

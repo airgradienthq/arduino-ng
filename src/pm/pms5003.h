@@ -20,9 +20,9 @@ class PMS5003
 {
 public:
   static const uint16_t SINGLE_RESPONSE_TIME = 1000;
-  static const uint16_t TOTAL_RESPONSE_TIME = 1000 * 10;
+  static const uint16_t TOTAL_RESPONSE_TIME  = 1000 * 10;
   static const uint16_t STEADY_RESPONSE_TIME = 1000 * 30;
-  static const uint16_t BAUD_RATE = 9600;
+  static const uint16_t BAUD_RATE            = 9600;
 
   struct DATA
   {
@@ -37,10 +37,11 @@ public:
     uint16_t PM_AE_UG_10_0;
   };
 
-  PMS5003(AirGradientBoardType_t def, Stream &stream);
 #if defined(ESP8266)
   PMS5003(AirGradientBoardType_t def);
+  bool begin(Stream* _debugStream);
 #else
+  PMS5003(AirGradientBoardType_t def, HardwareSerial& serial);
 #endif
   bool begin(void);
   void sleep();
@@ -84,6 +85,7 @@ private:
   Stream *_debugStream;
   const char *TAG = "PMS5003";
 #else
+  HardwareSerial& _serial;
 #endif
   bool _readUntil(DATA &data, uint16_t timeout);
   bool checkInit(void);

@@ -40,22 +40,56 @@ struct AirGradientBsp_t
   /** Board Support CO2 SenseS8 */
   struct 
   {
-    const uint8_t uart_tx_pin;  /** UART tx pin */
-    const uint8_t uart_rx_pin;  /** UART rx pin */
+    const int uart_tx_pin;  /** UART tx pin */
+    const int uart_rx_pin;  /** UART rx pin */
     const bool    supported;    /** Is BSP supported for this sensor */
   } SenseAirS8;
 
-  /** Board Support Plantower PM2.5 */
+  /** Board Support Plantower PMS5003 */
   struct 
   {
-    const uint8_t uart_tx_pin;  /** UART tx pin */
-    const uint8_t uart_rx_pin;  /** UART rx pin */
+    const int uart_tx_pin;  /** UART tx pin */
+    const int uart_rx_pin;  /** UART rx pin */
     const bool    supported;    /** Is BSP supported for this sensor */
   }PMS5003;
+
+  /** I2C Bus */
+  struct 
+  {
+    const int sda_pin;      /** I2C SDA pin */
+    const int scl_pin;      /** I2C SCL pin */
+    const bool supported;       /** Is BSP supported I2C communication */
+  } I2C;
+
+  /** Switch */
+  struct 
+  {
+    const int pin;          /** Switch PIN */
+    const int activeLevel;  /** Switch pressed level */
+    const bool supported;   
+  } SW;
+
+  /** LED */
+  struct 
+  {
+    const int pin;            /** Pin control */
+    const int rgbNum;         /** Number of RGB LED */
+    const int onState;        /** Single LED turn on state */
+    const bool supported;     /** SUpported LED */
+    const bool rgbSupported;  /** LED is RGB */
+  }LED;
   const char* name;
 };
 
 const AirGradientBsp_t* AirGradientBspGet(AirGradientBoardType_t def);
 void AirGradientBspPrint(Stream* _debug);
+
+bool AirGradientBspGet_I2C_Supported(const AirGradientBsp_t* bsp);
+int  AirGradientBspGet_I2C_SDA(const AirGradientBsp_t* bsp);
+int  AirGradientBspGet_I2C_SCL(const AirGradientBsp_t* bsp);
+
+bool AirGradientBspGet_SW_Supported(const AirGradientBsp_t* bsp);
+int  AirGradientBspGet_SW_Pin(const AirGradientBsp_t* bsp);
+int  AirGradientBspGet_SW_ActiveLevel(const AirGradientBsp_t* bsp);
 
 #endif /** _AIR_GRADIENT_BOARD_DEF_H_ */

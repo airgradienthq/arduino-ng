@@ -18,15 +18,12 @@
 class SenseAirS8
 {
 public:
-#if defined(ESP8266)
-  SenseAirS8(AirGradientBoardType_t def, Stream *_debugStream);
-#endif
   SenseAirS8(AirGradientBoardType_t def);
 #if defined(ESP8266)
   bool begin(void);
-  bool begin(Stream *_serialDebug);
+  bool begin(Stream* _serialDebug);
 #else
-  bool begin(HardwareSerial *serial);
+  bool begin(HardwareSerial &serial);
 #endif
   void end(void);
   bool isReady(void);
@@ -40,13 +37,11 @@ private:
   AirGradientBoardType_t _boardDef;
   Stream *_uartStream;
 #if defined(ESP32)
-  HardwareSerial *_serial;
+  HardwareSerial* _serial;
 #endif
   bool _isInit = false;
   bool _isReady = false; /** Wait for sensor ready after 10s heating up */
   uint32_t _lastInitTime;
-
-  /** Commands */
 
   /** Functions */
   bool _begin(void);
