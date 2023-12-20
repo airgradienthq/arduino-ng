@@ -53,27 +53,27 @@ AirGradient::AirGradient(bool displayMsg,int baudRate)
 // Functions available in Wiring sketches, this library, and other libraries
 
 
-void AirGradient::PMS_Init(){
+void AirGradient::PMS5003_Init(){
   if (_debugMsg) {
-    Serial.println("Initializing PMS...");
+    Serial.println("Initializing PMS5003...");
     }
-  PMS_Init(D5,D6);
+  PMS5003_Init(D5,D6);
 }
-void AirGradient::PMS_Init(int rx_pin,int tx_pin){
-  PMS_Init(rx_pin,tx_pin,9600);
+void AirGradient::PMS5003_Init(int rx_pin,int tx_pin){
+  PMS5003_Init(rx_pin,tx_pin,9600);
 }
-void AirGradient::PMS_Init(int rx_pin,int tx_pin,int baudRate){
-  _SoftSerial_PMS = new SoftwareSerial(rx_pin,tx_pin);
-  PMS(*_SoftSerial_PMS);
-  _SoftSerial_PMS->begin(baudRate);
+void AirGradient::PMS5003_Init(int rx_pin,int tx_pin,int baudRate){
+  _SoftSerial_PMS5003 = new SoftwareSerial(rx_pin,tx_pin);
+  PMS5003(*_SoftSerial_PMS5003);
+  _SoftSerial_PMS5003->begin(baudRate);
 
   if(getPM2() <= 0){
     
     if (_debugMsg) {
-    Serial.println("PMS Sensor Failed to Initialize ");
+    Serial.println("PMS5003 Sensor Failed to Initialize ");
     }
     else{
-    Serial.println("PMS Successfully Initialized. Heating up for 10s");
+    Serial.println("PMS5003 Successfully Initialized. Heating up for 10s");
     delay(10000);
   }
   }
@@ -88,7 +88,7 @@ const char* AirGradient::getPM2(){
     sprintf(Char_PM2,"%d", result_raw);
     return Char_PM2;
   } else {
-    //Serial.println("no PMS data");
+    //Serial.println("no PMS5003 data");
     Char_PM2[0] = 'N';
     Char_PM2[1] = 'U';
     Char_PM2[2] = 'L';
@@ -169,7 +169,7 @@ int AirGradient::getPM5_0Count(){
   }
 }
 
-int AirGradient::getPM2_5Count(){
+int AirGradient::getPMS5003Count(){
   int count;
   DATA data;
   requestRead();
@@ -234,9 +234,9 @@ int AirGradient::getAMB_HUM(){
 // Private Methods /////////////////////////////////////////////////////////////
 // Functions only available to other functions in this library
 
-//START PMS FUNCTIONS //
+//START PMS5003 FUNCTIONS //
 
-void AirGradient::PMS(Stream& stream)
+void AirGradient::PMS5003(Stream& stream)
 {
   this->_stream = &stream;
 }
@@ -283,12 +283,12 @@ void AirGradient::requestRead()
 }
 
 // Non-blocking function for parse response.
-bool AirGradient::read_PMS(DATA& data)
+bool AirGradient::read_PMS5003(DATA& data)
 {
   _data = &data;
   loop();
   
-  return _PMSstatus == STATUS_OK;
+  return _PMS5003status == STATUS_OK;
 }
 
 // Blocking function for parse response. Default timeout is 1s.
@@ -299,15 +299,15 @@ bool AirGradient::readUntil(DATA& data, uint16_t timeout)
   do
   {
     loop();
-    if (_PMSstatus == STATUS_OK) break;
+    if (_PMS5003status == STATUS_OK) break;
   } while (millis() - start < timeout);
 
-  return _PMSstatus == STATUS_OK;
+  return _PMS5003status == STATUS_OK;
 }
 
 void AirGradient::loop()
 {
-  _PMSstatus = STATUS_WAITING;
+  _PMS5003status = STATUS_WAITING;
   if (_stream->available())
   {
     uint8_t ch = _stream->read();
@@ -358,7 +358,7 @@ void AirGradient::loop()
 
         if (_calculatedChecksum == _checksum)
         {
-          _PMSstatus = STATUS_OK;
+          _PMS5003status = STATUS_OK;
 
           // Standard Particles, CF=1.
           _data->PM_SP_UG_1_0 = makeWord(_payload[0], _payload[1]);
@@ -378,10 +378,10 @@ void AirGradient::loop()
             _data->PM_RAW_5_0 = makeWord(_payload[20], _payload[21]);
             _data->PM_RAW_10_0 = makeWord(_payload[22], _payload[23]);
 
-            // Formaldehyde concentration (PMSxxxxST units only)
+            // Formaldehyde concentration (PMS5003xxxxST units only)
             _data->AMB_HCHO = makeWord(_payload[24], _payload[25]) / 1000;
 
-            // Temperature & humidity (PMSxxxxST units only)
+            // Temperature & humidity (PMS5003xxxxST units only)
             _data->PM_TMP = makeWord(_payload[20], _payload[21]) / 10;
             _data->PM_HUM = makeWord(_payload[22], _payload[23]) / 10;
         }
@@ -408,7 +408,7 @@ void AirGradient::loop()
   }
 }
 
-//END PMS FUNCTIONS //
+//END PMS5003 FUNCTIONS //
 
 //START TMP_RH FUNCTIONS//
 

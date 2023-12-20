@@ -162,14 +162,14 @@ class AirGradient
 
     void beginCO2(void);
     void beginCO2(int,int);
-    void PMS_Init(void);
-    void PMS_Init(int,int);
-    void PMS_Init(int,int,int);
+    void PMS5003_Init(void);
+    void PMS5003_Init(int,int);
+    void PMS5003_Init(int,int,int);
 
     bool _debugMsg;
 
 
-    //PMS VARIABLES PUBLIC_START
+    //PMS5003 VARIABLES PUBLIC_START
     static const uint16_t SINGLE_RESPONSE_TIME = 1000;
     static const uint16_t TOTAL_RESPONSE_TIME = 1000 * 10;
     static const uint16_t STEADY_RESPONSE_TIME = 1000 * 30;
@@ -195,22 +195,22 @@ class AirGradient
       uint16_t PM_RAW_5_0;
       uint16_t PM_RAW_10_0;
 
-      // Formaldehyde (HCHO) concentration in mg/m^3 - PMSxxxxST units only
+      // Formaldehyde (HCHO) concentration in mg/m^3 - PMS5003xxxxST units only
       uint16_t AMB_HCHO;
 
-      // Temperature & humidity - PMSxxxxST units only
+      // Temperature & humidity - PMS5003xxxxST units only
       int16_t PM_TMP;
       uint16_t PM_HUM;
     };
 
-    void PMS(Stream&);
+    void PMS5003(Stream&);
     void sleep();
     void wakeUp();
     void activeMode();
     void passiveMode();
 
     void requestRead();
-    bool read_PMS(DATA& data);
+    bool read_PMS5003(DATA& data);
     bool readUntil(DATA& data, uint16_t timeout = SINGLE_RESPONSE_TIME);
 
 
@@ -222,14 +222,14 @@ class AirGradient
     int getPM0_3Count();
     int getPM0_5Count();
     int getPM1_0Count();
-    int getPM2_5Count();
+    int getPMS5003Count();
     int getPM5_0Count();
     int getPM10_0Count();
 
     int getAMB_TMP();
     int getAMB_HUM();
 
-    //PMS VARIABLES PUBLIC_END
+    //PMS5003 VARIABLES PUBLIC_END
 
     //TMP_RH VARIABLES PUBLIC START
     void ClosedCube_TMP_RH();
@@ -277,26 +277,26 @@ class AirGradient
     int value;
 
 
-     //PMS VARIABLES PRIVATE START
+     //PMS5003 VARIABLES PRIVATE START
     enum STATUS { STATUS_WAITING, STATUS_OK };
     enum MODE { MODE_ACTIVE, MODE_PASSIVE };
 
     uint8_t _payload[32];
     Stream* _stream;
     DATA* _data;
-    STATUS _PMSstatus;
+    STATUS _PMS5003status;
     MODE _mode = MODE_ACTIVE;
 
     uint8_t _index = 0;
     uint16_t _frameLen;
     uint16_t _checksum;
     uint16_t _calculatedChecksum;
-    SoftwareSerial *_SoftSerial_PMS;
+    SoftwareSerial *_SoftSerial_PMS5003;
     void loop();
     char Char_PM1[10];
     	char Char_PM2[10];
     	char Char_PM10[10];
-    //PMS VARIABLES PRIVATE END
+    //PMS5003 VARIABLES PRIVATE END
 
     //TMP_RH VARIABLES PRIVATE START
     uint8_t _address;
