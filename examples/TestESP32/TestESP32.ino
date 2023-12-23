@@ -97,9 +97,14 @@ AirGradientOled oled(BOARD_ONE_INDOOR_MONITOR_V9_0);
 
 #endif
 
+const AirGradientBsp_t* bsp;
+
+void watchDogInit(void);
+void watchDogFeed(void);
 
 void setup()
 {
+
   /** Print All AirGradient board define */
   AirGradientBspPrint(NULL);
 
@@ -326,4 +331,42 @@ void loop()
   log_i("Switch state: %d", sw.getState());
   vTaskDelay(50);
 #endif
+
+  watchDogFeed();
+}
+
+void watchDogInit(void)
+{
+  bsp = AirGradientBspGet(BOARD_ONE_INDOOR_MONITOR_V9_0);
+  AirGradientBspWdgInit(bsp);
+  log_i("WatchDog init");
+}
+
+void watchDogFeed(void)
+{
+  static uint32_t wdgTime = 0;
+  static bool wdgBegin = false;
+  uint32_t ms;
+  
+  ms = (uint32_t)(millis() - wdgTime);
+  if (wdgBegin)
+  {
+    if (ms >= 30)
+    {
+      wdgBegin = false;
+      wdgTime = millis();
+      AirGradientBspWdgFeedEnd(bsp);
+      log_i("Watchdog Feed end");
+    }
+  }
+  else
+  {
+    if (ms >= 2500)
+    {
+      wdgTime = millis();
+      AirGradientBspWdgFeedBegin(bsp);
+      wdgBegin = true;
+      log_i("Watchdog Feed begin");
+    }
+  }
 }

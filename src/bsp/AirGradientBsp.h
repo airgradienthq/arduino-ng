@@ -12,7 +12,7 @@
 #ifndef _AIR_GRADIENT_BOARD_DEF_H_
 #define _AIR_GRADIENT_BOARD_DEF_H_
 
-#include "Arduino.h"
+#include <Arduino.h>
 
 #if defined(ESP8266)
 #define AgLog(c, ...)                                                   \
@@ -87,6 +87,13 @@ struct AirGradientBsp_t
     const uint8_t addr;     /** OLED I2C address */
     const bool supported;
   } OLED;
+
+  /** Watchdog */
+  struct
+  {
+    const uint8_t resetPin;
+    const bool supported;
+  } WDG;
   const char* name;
 };
 
@@ -100,5 +107,9 @@ int  AirGradientBspGet_I2C_SCL(const AirGradientBsp_t* bsp);
 bool AirGradientBspGet_SW_Supported(const AirGradientBsp_t* bsp);
 int  AirGradientBspGet_SW_Pin(const AirGradientBsp_t* bsp);
 int  AirGradientBspGet_SW_ActiveLevel(const AirGradientBsp_t* bsp);
+
+void AirGradientBspWdgInit(const AirGradientBsp_t* bsp);
+void AirGradientBspWdgFeedBegin(const AirGradientBsp_t* bsp);
+void AirGradientBspWdgFeedEnd(const AirGradientBsp_t* bsp);
 
 #endif /** _AIR_GRADIENT_BOARD_DEF_H_ */

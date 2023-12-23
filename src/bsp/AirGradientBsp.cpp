@@ -77,6 +77,11 @@ const AirGradientBsp_t bsps[BOARD_DEF_MAX] =
 			.supported = false,
 #endif
 		},
+		.WDG = 
+		{
+			.resetPin = -1,
+			.supported = false,
+		},
 		.name = "BOARD_DIY_BASIC_KIT",
   },
   /** BOARD_DIY_PRO_INDOOR_V4_2 */
@@ -145,6 +150,11 @@ const AirGradientBsp_t bsps[BOARD_DEF_MAX] =
 			.addr = 0,
 			.supported = false,
 #endif
+		},
+		.WDG = 
+		{
+			.resetPin = -1,
+			.supported = false,
 		},
 		.name = "BOARD_DIY_PRO_INDOOR_V4_2",
   },
@@ -221,6 +231,16 @@ const AirGradientBsp_t bsps[BOARD_DEF_MAX] =
 			.width = 128,
 			.height = 64,
 			.addr = 0x3C,
+			.supported = true,
+#endif
+		},
+		.WDG = 
+		{
+#if defined(ESP8266)
+			.resetPin = -1,
+			.supported = false,
+#else
+			.resetPin = 2,
 			.supported = true,
 #endif
 		},
@@ -302,6 +322,16 @@ const AirGradientBsp_t bsps[BOARD_DEF_MAX] =
 			.supported = true,
 #endif
 		},
+		.WDG = 
+		{
+#if defined(ESP8266)
+			.resetPin = -1,
+			.supported = false,
+#else
+			.resetPin = 2,
+			.supported = true,
+#endif
+		},
 		.name = "BOARD_OUTDOOR_MONITOR_V1_3",
   }
 };
@@ -357,7 +387,7 @@ void AirGradientBspPrint(Stream *_debug)
 			bspPrintf("\t\tUART Rx: %d", bsps[i].SenseAirS8.uart_rx_pin);
 		}
 
-		bspPrintf("\tSensor PMS50032.5:");
+		bspPrintf("\tSensor PMS5003:");
 		bspPrintf("\t\tSupported: %d", bsps[i].PMS5003.supported);
 		if (bsps[i].PMS5003.supported)
 		{
@@ -404,6 +434,13 @@ void AirGradientBspPrint(Stream *_debug)
 			bspPrintf("\t\tWidth   : %d", bsps[i].OLED.width);
 			bspPrintf("\t\tHeigth  : %d", bsps[i].OLED.height);
 			bspPrintf("\t\tI2C Addr: %d", bsps[i].OLED.addr);
+		}
+
+		bspPrintf("\tWatchDog");
+		bspPrintf("\t\tSupported: %d", bsps[i].WDG.supported);
+		if (bsps[i].OLED.supported)
+		{
+			bspPrintf("\t\tReset Pin: %d", bsps[i].WDG.resetPin);
 		}
 	}
 }
@@ -460,4 +497,57 @@ int AirGradientBspGet_SW_ActiveLevel(const AirGradientBsp_t *bsp)
 		return 0;
 	}
 	return bsp->SW.activeLevel;
+}
+
+void AirGradientBspWdgInit(const AirGradientBsp_t *bsp)
+{
+	if (bsp == nullptr)
+	{
+		return;
+	}
+	if (bsp->WDG.supported)
+	{
+		pinMode(bsp->WDG.resetPin, OUTPUT);
+		digitalWrite(bsp->WDG.resetPin, LOW);
+		delay(25); // Delay 25ms
+		digitalWrite(bsp->WDG.resetPin, HIGH);
+	}
+}
+
+/**
+ * @brief Begin reset external watchdog. Must call @ref AirGradientBspWdgFeedEnd 
+ * after 20 ms
+ * 
+ * @param bsp 
+ */
+void AirGradientBspWdgFeedBegin(const AirGradientBsp_t *bsp)
+{
+	if (bsp == nullptr)
+	{
+		return;
+	}
+
+	if (bsp->WDG.supported)
+	{
+		digitalWrite(bsp->WDG.resetPin, HIGH);
+	}
+}
+
+/**
+ * @brief Call this function to finish watchdog feed after call @ref AirGradientBspWdgFeedBegin
+ * 25 ms
+ * 
+ * @param bsp 
+ */
+void AirGradientBspWdgFeedEnd(const AirGradientBsp_t *bsp)
+{
+	if (bsp == nullptr)
+	{
+		return;
+	}
+
+	if (bsp->WDG.supported)
+	{
+		digitalWrite(bsp->WDG.resetPin, LOW);
+	}
 }
