@@ -10,6 +10,9 @@
  */
 
 #include "sht4x.h"
+#include "../library/SensirionSHT4x/src/SensirionI2CSht4x.h"
+
+#define shtSensor()     ((SensirionI2CSht4x*)(this->_sensor))
 
 #if defined(ESP8266)
 AirGradientSht::AirGradientSht(AirGradientBoardType_t type, Stream &stream):
@@ -44,9 +47,9 @@ bool AirGradientSht::begin(TwoWire& wire)
   {
     return false;
   }
-
-  this->_sensor.begin(wire, SHT40_I2C_ADDR_44);
-  if(this->_sensor.softReset() != 0)
+  this->_sensor = new SensirionI2CSht4x();
+  shtSensor()->begin(wire, SHT40_I2C_ADDR_44);
+  if(shtSensor()->softReset() != 0)
   {
     AgLog("Reset sensor fail, look like sensor is not on I2C bus");
     return false;
@@ -57,6 +60,17 @@ bool AirGradientSht::begin(TwoWire& wire)
   this->_isInit = true;
   AgLog("Init");
   return true;
+}
+
+void AirGradientSht::end(void)
+{
+  if(this->_isInit == false)
+  {
+    return;
+  }
+
+  this->_isInit = false;
+  delete shtSensor();
 }
 
 bool AirGradientSht::boardSupported(void)
@@ -111,7 +125,7 @@ bool AirGradientSht::measureHighPrecision(float &temperature, float &humidity)
     return false;
   }
 
-  if (this->_sensor.measureHighPrecision(temperature, humidity) == 0)
+  if (shtSensor()->measureHighPrecision(temperature, humidity) == 0)
   {
     return true;
   }
@@ -125,7 +139,7 @@ bool AirGradientSht::measureMediumPrecision(float &temperature, float &humidity)
     return false;
   }
 
-  if (this->_sensor.measureMediumPrecision(temperature, humidity) == 0)
+  if (shtSensor()->measureMediumPrecision(temperature, humidity) == 0)
   {
     return true;
   }
@@ -139,7 +153,7 @@ bool AirGradientSht::measureLowestPrecision(float &temperature, float &humidity)
     return false;
   }
 
-  if (this->_sensor.measureLowestPrecision(temperature, humidity) == 0)
+  if (shtSensor()->measureLowestPrecision(temperature, humidity) == 0)
   {
     return true;
   }
@@ -153,7 +167,7 @@ bool AirGradientSht::activateHighestHeaterPowerShort(float &temperature, float &
     return false;
   }
 
-  if (this->_sensor.activateHighestHeaterPowerShort(temperature, humidity) == 0)
+  if (shtSensor()->activateHighestHeaterPowerShort(temperature, humidity) == 0)
   {
     return true;
   }
@@ -167,7 +181,7 @@ bool AirGradientSht::activateMediumHeaterPowerLong(float &temperature, float &hu
     return false;
   }
 
-  if (this->_sensor.activateMediumHeaterPowerLong(temperature, humidity) == 0)
+  if (shtSensor()->activateMediumHeaterPowerLong(temperature, humidity) == 0)
   {
     return true;
   }
@@ -181,7 +195,7 @@ bool AirGradientSht::activateLowestHeaterPowerLong(float &temperature, float &hu
     return false;
   }
 
-  if (this->_sensor.activateLowestHeaterPowerLong(temperature, humidity) == 0)
+  if (shtSensor()->activateLowestHeaterPowerLong(temperature, humidity) == 0)
   {
     return true;
   }
@@ -195,7 +209,7 @@ bool AirGradientSht::getSerialNumber(uint32_t &serialNumber)
     return false;
   }
 
-  if (this->_sensor.serialNumber(serialNumber) == 0)
+  if (shtSensor()->serialNumber(serialNumber) == 0)
   {
     return true;
   }
@@ -209,7 +223,7 @@ bool AirGradientSht::softReset(void)
     return false;
   }
 
-  if (this->_sensor.softReset() == 0)
+  if (shtSensor()->softReset() == 0)
   {
     return true;
   }

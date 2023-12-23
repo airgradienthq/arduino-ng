@@ -17,7 +17,6 @@
 #include <Wire.h>
 
 #include "../bsp/AirGradientBsp.h"
-#include "../library/SensirionSHT4x/src/SensirionI2CSht4x.h"
 
 class AirGradientSht
 {
@@ -29,6 +28,7 @@ public:
 #endif
   AirGradientSht(AirGradientBoardType_t type);
   bool begin(TwoWire& wire);
+  void end(void);
   bool boardSupported(void);
   int sdaPin(void);
   int sclPin(void);
@@ -47,7 +47,7 @@ public:
 private:
   AirGradientBoardType_t _boardType;
   bool _isInit = false;
-  SensirionI2CSht4x _sensor;
+  void* _sensor;
   const AirGradientBsp_t* _bsp = NULL;
 #if defined(ESP8266)
   Stream* _debugStream = nullptr;

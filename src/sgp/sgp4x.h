@@ -16,7 +16,6 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include "../bsp/AirGradientBsp.h"
-#include "../library/SensirionSGP4x/src/SensirionI2CSgp40.h"
 
 class AirGradientSgp4x
 {
@@ -36,7 +35,8 @@ public:
   bool getSerialNumber(uint16_t serialNumbers[], uint8_t serialNumberSize);
 private:
   bool _isInit = false;
-  SensirionI2CSgp40 _sensor;
+  void* _sensor;
+  // SensirionI2CSgp40 _sensor;
   const AirGradientBsp_t* bsp = nullptr;
   AirGradientBoardType_t _boardType;
 #if defined(ESP8266)

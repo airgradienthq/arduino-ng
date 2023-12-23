@@ -11,6 +11,7 @@
  */
 
 #include "sgp4x.h"
+#include "../library/SensirionSGP4x/src/SensirionI2CSgp40.h"
 
 #if defined(ESP8266)
 AirGradientSgp4x::AirGradientSgp4x(AirGradientBoardType_t type, Stream& stream):
@@ -21,6 +22,8 @@ AirGradientSgp4x::AirGradientSgp4x(AirGradientBoardType_t type, Stream& stream):
 }
 #else
 #endif
+
+#define sgpSensor()     ((SensirionI2CSgp40*)(this->_sensor))
 
 AirGradientSgp4x::AirGradientSgp4x(AirGradientBoardType_t type):
   _boardType(type)
@@ -38,11 +41,12 @@ bool AirGradientSgp4x::begin(TwoWire& wire)
   {
     return false;
   }
-
-  this->_sensor.begin(wire);
+  this->_sensor = new SensirionI2CSgp40();
+  sgpSensor()->begin(wire);
+  // sgpSensor()->begin(wire);
 
   uint16_t testResult;
-  if (this->_sensor.executeSelfTest(testResult) != 0)
+  if (sgpSensor()->executeSelfTest(testResult) != 0)
   {
     return false;
   }
@@ -65,6 +69,7 @@ void AirGradientSgp4x::end(void)
   }
 
   this->_isInit = false;
+  delete sgpSensor();
   
   AgLog("De-Init");
 }
@@ -111,7 +116,7 @@ bool AirGradientSgp4x::getRawSignal(uint16_t& raw, uint16_t defaultRh, uint16_t 
     return false;
   }
 
-  if (this->_sensor.measureRawSignal(defaultRh, defaultT, raw) == 0)
+  if (sgpSensor()->measureRawSignal(defaultRh, defaultT, raw) == 0)
   {
     return true;
   }
@@ -133,7 +138,7 @@ bool AirGradientSgp4x::turnHeaterOff(void)
     return false;
   }
 
-  if (this->_sensor.turnHeaterOff() == 0)
+  if (sgpSensor()->turnHeaterOff() == 0)
   {
     return true;
   }
@@ -147,7 +152,7 @@ bool AirGradientSgp4x::getSerialNumber(uint16_t serialNumbers[], uint8_t serialN
     return false;
   }
 
-  if (this->_sensor.getSerialNumber(serialNumbers, serialNumberSize) == 0)
+  if (sgpSensor()->getSerialNumber(serialNumbers, serialNumberSize) == 0)
   {
     return true;
   }
