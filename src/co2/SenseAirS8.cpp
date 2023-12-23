@@ -10,6 +10,7 @@
  */
 
 #include "SenseAirS8.h"
+#include "mb_crc.h"
 #if defined(ESP8266)
 #include <SoftwareSerial.h>
 #else
@@ -17,11 +18,10 @@
 
 /**
  * @brief Construct a new Sense Air S 8:: Sense Air S 8 object
- * 
- * @param def 
+ *
+ * @param def
  */
-SenseAirS8::SenseAirS8(AirGradientBoardType_t def) : 
-  _boardDef(def)
+SenseAirS8::SenseAirS8(AirGradientBoardType_t def) : _boardDef(def)
 {
 }
 
@@ -37,7 +37,7 @@ bool SenseAirS8::begin(void)
     AgLog("Initialized, Call end() then try again");
     return true;
   }
-  
+
   return this->_begin();
 }
 
@@ -48,20 +48,20 @@ bool SenseAirS8::begin(void)
  * @param _debugStream Serial print debug log, NULL if don't use
  * @return true = success, otherwise is failure
  */
-bool SenseAirS8::begin(Stream* _debugStream)
+bool SenseAirS8::begin(Stream *_debugStream)
 {
   this->_debugStream = _debugStream;
   return this->begin();
 }
 #else
 /**
- * @brief Init sensor 
- * 
+ * @brief Init sensor
+ *
  * @param serial Target Serial use for communication with sensor
  * @return true Success
  * @return false Failure
  */
-bool SenseAirS8::begin(HardwareSerial& serial)
+bool SenseAirS8::begin(HardwareSerial &serial)
 {
   this->_serial = &serial;
   return this->_begin();
@@ -112,59 +112,515 @@ bool SenseAirS8::isReady(void)
 }
 
 /**
- * @brief Get CO2 sensor raw data
- *
- * @return int -1 if failure
+ * @brief Get sensor firmware version
+ * 
+ * @param firmver String buffer, len = 10 char
  */
-int SenseAirS8::getRaw(void)
+void SenseAirS8::getFirmwareVersion(char firmver[])
 {
-  if (this->isInit() == false)
+  if (firmver == NULL)
   {
-    return -1;
+    return;
   }
-  return this->_getRaw();
+
+  strcpy(firmver, "");
+
+  // Ask software version
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR29, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+  {
+    snprintf(firmver, S8_LEN_FIRMVER, "%0u.%0u", buf_msg[3], buf_msg[4]);
+    AgLog("Firmware version: %s", firmver);
+  }
+  else
+  {
+    AgLog("Firmware version not available!");
+  }
 }
 
 /**
- * @brief Get sensor data
- *
- * @param samples Average number of samples
- * @return int data (ppm)
+ * @brief Get sensor type ID
+ * 
+ * @return int32_t Return ID
  */
-int SenseAirS8::getCO2(int numberOfSamplesToTake)
+int32_t SenseAirS8::getSensorTypeId(void)
 {
-  if (this->isInit() == false)
-  {
-    return -1;
-  }
 
-  if (numberOfSamplesToTake <= 0)
-  {
-    AgLog("samples must be larger than '0'");
-    return -2;
-  }
+  int32_t sensorType = 0;
 
-  int successfulSamplesCounter = 0;
-  int co2AsPpmSum = 0;
-  for (int sample = 0; sample < numberOfSamplesToTake; sample++)
+  // Ask sensor type ID (high)
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR26, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
   {
-    int co2AsPpm = this->getRaw();
-    if (co2AsPpm > 300 && co2AsPpm < 10000)
+
+    // Save sensor type ID (high)
+    sensorType = (((int32_t)buf_msg[4] << 16) & 0x00FF0000);
+
+    // Ask sensor type ID (low)
+    sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR27, 0x0001);
+
+    // Wait response
+    memset(buf_msg, 0, S8_LEN_BUF_MSG);
+    nb = uartReadBytes(7, S8_TIMEOUT);
+
+    // Check response and get data
+    if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
     {
-      AgLog("CO2 read success %d", co2AsPpm);
-      successfulSamplesCounter++;
-      co2AsPpmSum += co2AsPpm;
+      sensorType |= ((buf_msg[3] << 8) & 0x0000FF00) | (buf_msg[4] & 0x000000FF);
     }
     else
     {
-      AgLog("CO2 read failed with %d", co2AsPpm);
+      AgLog("Error getting sensor type ID (low)!");
     }
-
-    // without delay we get a few 10ms spacing, add some more
-    delay(250);
+  }
+  else
+  {
+    AgLog("Error getting sensor type ID (high)!");
   }
 
-  return co2AsPpmSum / successfulSamplesCounter;
+  return sensorType;
+}
+
+/**
+ * @brief Get sensor ID
+ * 
+ * @return int32_t ID
+ */
+int32_t SenseAirS8::getSensorId(void)
+{
+
+  int32_t sensorID = 0;
+
+  // Ask sensor ID (high)
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR30, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+  {
+
+    // Save sensor ID (high)
+    sensorID = (((int32_t)buf_msg[3] << 24) & 0xFF000000) | (((int32_t)buf_msg[4] << 16) & 0x00FF0000);
+
+    // Ask sensor ID (low)
+    sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR31, 0x0001);
+
+    // Wait response
+    memset(buf_msg, 0, S8_LEN_BUF_MSG);
+    nb = uartReadBytes(7, S8_TIMEOUT);
+
+    // Check response and get data
+    if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+    {
+      sensorID |= ((buf_msg[3] << 8) & 0x0000FF00) | (buf_msg[4] & 0x000000FF);
+    }
+    else
+    {
+      AgLog("Error getting sensor ID (low)!");
+    }
+  }
+  else
+  {
+    AgLog("Error getting sensor ID (high)!");
+  }
+
+  return sensorID;
+}
+
+/**
+ * @brief Get memory map version
+ * 
+ * @return int16_t 
+ */
+int16_t SenseAirS8::getMemoryMapVersion(void)
+{
+  int16_t mmVersion = 0;
+
+  // Ask memory map version
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR28, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+  {
+    mmVersion = ((buf_msg[3] << 8) & 0xFF00) | (buf_msg[4] & 0x00FF);
+    AgLog("Memory map version = %d", mmVersion);
+  }
+  else
+  {
+    AgLog("Error getting memory map version!");
+  }
+
+  return mmVersion;
+}
+
+/**
+ * @brief Get CO2 value (PPM)
+ * 
+ * @return int16_t C02 value (PPM)
+ */
+int16_t SenseAirS8::getCO2(void)
+{
+  int16_t co2 = 0;
+
+  // Ask CO2 value
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR4, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+  {
+    co2 = ((buf_msg[3] << 8) & 0xFF00) | (buf_msg[4] & 0x00FF);
+    AgLog("CO2 value = %d ppm", co2);
+  }
+  else
+  {
+    AgLog("Error getting CO2 value!");
+  }
+
+  return co2;
+}
+
+/**
+ * @brief Get output PWM value
+ * 
+ * @return int16_t PWM
+ */
+int16_t SenseAirS8::getOutputPWM(void)
+{
+  int16_t pwm = 0;
+
+  // Ask PWM output
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR22, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+  {
+    pwm = ((buf_msg[3] << 8) & 0xFF00) | (buf_msg[4] & 0x00FF);
+    AgLog("PWM output (raw) = %d", pwm);
+    AgLog("PWM output (to ppm, normal version) = %d PPM", (pwm / 16383.0) * 2000.0);
+  }
+  else
+  {
+    AgLog("Error getting PWM output!");
+  }
+
+  return pwm;
+}
+
+/**
+ * @brief Get ABC calibration period
+ * 
+ * @return int16_t Hour
+ */
+int16_t SenseAirS8::getCalibPeriodABC(void)
+{
+  int16_t period = 0;
+
+  // Ask ABC period
+  sendCommand(MODBUS_FUNC_READ_HOLDING_REGISTERS, MODBUS_HR32, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_HOLDING_REGISTERS, nb, 7))
+  {
+    period = ((buf_msg[3] << 8) & 0xFF00) | (buf_msg[4] & 0x00FF);
+    AgLog("ABC period: %d hour", period);
+  }
+  else
+  {
+    AgLog("Error getting ABC period!");
+  }
+
+  return period;
+}
+
+/**
+ * @brief Set ABC calibration period
+ * 
+ * @param period Hour, 4 - 4800 hour, 0 to disable
+ * @return true Success
+ * @return false Failure
+ */
+bool SenseAirS8::setCalibPeriodABC(int16_t period)
+{
+  uint8_t buf_msg_sent[8];
+  bool result = false;
+
+  if (period >= 0 && period <= 4800)
+  { // 0 = disable ABC algorithm
+
+    // Ask set ABC period
+    sendCommand(MODBUS_FUNC_WRITE_SINGLE_REGISTER, MODBUS_HR32, period);
+
+    // Save bytes sent
+    memcpy(buf_msg_sent, buf_msg, 8);
+
+    // Wait response
+    memset(buf_msg, 0, S8_LEN_BUF_MSG);
+    uartReadBytes(8, S8_TIMEOUT);
+
+    // Check response
+    if (memcmp(buf_msg_sent, buf_msg, 8) == 0)
+    {
+      result = true;
+      AgLog("Successful setting of ABC period");
+    }
+    else
+    {
+      AgLog("Error in setting of ABC period!");
+    }
+  }
+  else
+  {
+    AgLog("Invalid ABC period!");
+  }
+
+  return result;
+}
+
+/**
+ * @brief Manual calibration sensor, must be place sensor at clean environment
+ * for 5 minute before calib
+ * 
+ * @return true Success
+ * @return false Failure
+ */
+bool SenseAirS8::manualCalib(void)
+{
+  bool result = clearAcknowledgement();
+
+  if (result)
+  {
+    result = sendSpecialCommand(S8_CO2_BACKGROUND_CALIBRATION);
+
+    if (result)
+    {
+      AgLog("Manual calibration in background has started");
+    }
+    else
+    {
+      AgLog("Error starting manual calibration!");
+    }
+  }
+
+  return result;
+}
+
+/**
+ * @brief Get sensor acknowlegement flags
+ * 
+ * @return int16_t Flags
+ */
+int16_t SenseAirS8::getAcknowledgement(void)
+{
+  int16_t flags = 0;
+
+  // Ask acknowledgement flags
+  sendCommand(MODBUS_FUNC_READ_HOLDING_REGISTERS, MODBUS_HR1, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_HOLDING_REGISTERS, nb, 7))
+  {
+    flags = ((buf_msg[3] << 8) & 0xFF00) | (buf_msg[4] & 0x00FF);
+  }
+  else
+  {
+    AgLog("Error getting acknowledgement flags!");
+  }
+
+  return flags;
+}
+
+/**
+ * @brief Clea acknowlegement flags
+ * 
+ * @return true Success
+ * @return false Failure
+ */
+bool SenseAirS8::clearAcknowledgement(void)
+{
+  uint8_t buf_msg_sent[8];
+  bool result = false;
+
+  // Ask clear acknowledgement flags
+  sendCommand(MODBUS_FUNC_WRITE_SINGLE_REGISTER, MODBUS_HR1, 0x0000);
+
+  // Save bytes sent
+  memcpy(buf_msg_sent, buf_msg, 8);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uartReadBytes(8, S8_TIMEOUT);
+
+  // Check response
+  if (memcmp(buf_msg_sent, buf_msg, 8) == 0)
+  {
+    result = true;
+    AgLog("Successful clearing acknowledgement flags");
+  }
+  else
+  {
+    AgLog("Error clearing acknowledgement flags!");
+  }
+
+  return result;
+}
+
+/**
+ * @brief Get sensor alarm status
+ * 
+ * @return int16_t Alarm status
+ */
+int16_t SenseAirS8::getAlarmStatus(void)
+{
+
+  int16_t status = 0;
+
+  // Ask alarm status
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR2, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+  {
+    status = ((buf_msg[3] << 8) & 0xFF00) | (buf_msg[4] & 0x00FF);
+  }
+  else
+  {
+    AgLog("Error getting alarm status!");
+  }
+
+  return status;
+}
+
+/**
+ * @brief Get sensor status
+ * 
+ * @return SenseAirS8::Status Sensor status
+ */
+SenseAirS8::Status SenseAirS8::getStatus(void)
+{
+  int16_t status = 0;
+
+  // Ask meter status
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR1, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+  {
+    status = ((buf_msg[3] << 8) & 0xFF00) | (buf_msg[4] & 0x00FF);
+  }
+  else
+  {
+    AgLog("Error getting meter status!");
+  }
+
+  return (Status)status;
+}
+
+/**
+ * @brief Get sensor output status
+ * 
+ * @return int16_t Output status
+ */
+int16_t SenseAirS8::getOutputStatus(void)
+{
+  int16_t status = 0;
+
+  // Ask output status
+  sendCommand(MODBUS_FUNC_READ_INPUT_REGISTERS, MODBUS_IR3, 0x0001);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uint8_t nb = uartReadBytes(7, S8_TIMEOUT);
+
+  // Check response and get data
+  if (validResponseLenght(MODBUS_FUNC_READ_INPUT_REGISTERS, nb, 7))
+  {
+    status = ((buf_msg[3] << 8) & 0xFF00) | (buf_msg[4] & 0x00FF);
+  }
+  else
+  {
+    AgLog("Error getting output status!");
+  }
+
+  return status;
+}
+
+/**
+ * @brief Send special command to sensor, example manual calibration
+ * 
+ * @param command Command
+ * @return true Success
+ * @return false Failure
+ */
+bool SenseAirS8::sendSpecialCommand(CalibrationSpecialComamnd command)
+{
+  uint8_t buf_msg_sent[8];
+  bool result = false;
+
+  // Ask set user special command
+  sendCommand(MODBUS_FUNC_WRITE_SINGLE_REGISTER, MODBUS_HR2, command);
+
+  // Save bytes sent
+  memcpy(buf_msg_sent, buf_msg, 8);
+
+  // Wait response
+  memset(buf_msg, 0, S8_LEN_BUF_MSG);
+  uartReadBytes(8, S8_TIMEOUT);
+
+  // Check response
+  if (memcmp(buf_msg_sent, buf_msg, 8) == 0)
+  {
+    result = true;
+    AgLog("Successful setting user special command");
+  }
+  else
+  {
+    AgLog("Error in setting user special command!");
+  }
+
+  return result;
 }
 
 /**
@@ -211,8 +667,6 @@ bool SenseAirS8::_begin(void)
   {
     return false;
   }
-
-  this->_isInit = true;
   return true;
 }
 
@@ -238,15 +692,17 @@ bool SenseAirS8::init(int txPin, int rxPin, uint32_t baud)
   /** Clear ready state */
   this->_isReady = false;
 
-  /** Get sensor data to check communication */
-  int result = this->_getRaw();
-  if (result < 0)
+  /** Check communication by get firmware version */
+  char fwVers[11];
+  this->getFirmwareVersion(fwVers);
+  if(strlen(fwVers) == 0)
   {
-    AgLog("Sensor failed to initialize");
     return false;
   }
+  AgLog("Firmware version: %s", fwVers);
 
   AgLog("Sensor successfully initialized. Heating up for 10s");
+  this->_isInit = true;
   this->_lastInitTime = millis();
   return true;
 }
@@ -268,51 +724,122 @@ bool SenseAirS8::isInit(void)
 }
 
 /**
- * @brief Get raw data
- *
- * @return int Sensor data
+ * @brief UART write
+ * 
+ * @param size Number of bytes
  */
-int SenseAirS8::_getRaw(void)
+void SenseAirS8::uartWriteBytes(uint8_t size)
 {
-  // Clear rx buffer
+  this->_uartStream->write(buf_msg, size);
   this->_uartStream->flush();
+}
 
-  const byte CO2Command[] = {0xFE, 0x04, 0x00, 0x03, 0x00, 0x01, 0xD5, 0xC5};
-  byte CO2Response[] = {0, 0, 0, 0, 0, 0, 0};
-  int datapos = -1;
-  const int commandSize = 8;
-  const int responseSize = 7;
-
-  int numberOfBytesWritten = this->_uartStream->write(CO2Command, commandSize);
-  if (numberOfBytesWritten != commandSize)
+uint8_t SenseAirS8::uartReadBytes(uint8_t max_bytes, uint32_t timeout_ms)
+{
+  uint8_t nb = 0;
+  uint32_t stime = millis();
+  while (1)
   {
-    AgLog("Fail to write request");
-    return -2;
-  }
-
-  // attempt to read response
-  int timeoutCounter = 0;
-  while (this->_uartStream->available() < responseSize)
-  {
-    timeoutCounter++;
-    if (timeoutCounter > 10)
+    if (this->_uartStream->available())
     {
-      AgLog("Timeout when reading response");
-      return -3;
+      buf_msg[nb] = this->_uartStream->read();
+      nb++;
+      if (nb >= max_bytes)
+      {
+        break;
+      }
     }
-    delay(50);
-  }
 
-  // we have 7 bytes ready to be read
-  for (int i = 0; i < responseSize; i++)
-  {
-    CO2Response[i] = this->_uartStream->read();
-    if ((CO2Response[i] == 0xFE) && (datapos == -1))
+    uint32_t ms = (uint32_t)(millis() - stime);
+    if (ms >= timeout_ms)
     {
-      datapos = i;
+      break;
     }
-    // AgLog("0x%02x", (uint8_t)CO2Response[i]);
+  }
+  return nb;
+}
+
+/**
+ * @brief Check reponse
+ * 
+ * @param func Modbus function code
+ * @param nb Number of byte
+ * @return true 
+ * @return false 
+ */
+bool SenseAirS8::validResponse(uint8_t func, uint8_t nb)
+{
+  uint16_t crc16;
+  bool result = false;
+
+  if (nb >= 7)
+  {
+    crc16 = AgMb16Crc(buf_msg, nb - 2);
+    if ((buf_msg[nb - 2] == (crc16 & 0x00FF)) && (buf_msg[nb - 1] == ((crc16 >> 8) & 0x00FF)))
+    {
+
+      if (buf_msg[0] == MODBUS_ANY_ADDRESS && (buf_msg[1] == MODBUS_FUNC_READ_HOLDING_REGISTERS || buf_msg[1] == MODBUS_FUNC_READ_INPUT_REGISTERS) && buf_msg[2] == nb - 5)
+      {
+        AgLog("Valid response");
+        result = true;
+      }
+      else
+      {
+        AgLog("Err: Unexpected response!");
+      }
+    }
+    else
+    {
+      AgLog("Err: Checksum/length is invalid!");
+    }
+  }
+  else
+  {
+    AgLog("Err: Invalid length!");
   }
 
-  return CO2Response[datapos + 3] * 256 + CO2Response[datapos + 4];
+  return result;
+}
+
+/**
+ * @brief Check response length
+ * 
+ * @param func Modbus function code
+ * @param nb Number of bytes
+ * @param len Length
+ * @return true Success
+ * @return false Failure
+ */
+bool SenseAirS8::validResponseLenght(uint8_t func, uint8_t nb, uint8_t len)
+{
+  bool result = false;
+  if (nb == len)
+  {
+    result = validResponse(func, nb);
+  }
+  else
+  {
+    AgLog("Err: Unexpected length!");
+  }
+
+  return result;
+}
+
+void SenseAirS8::sendCommand(uint8_t func, uint16_t reg, uint16_t value)
+{
+  uint16_t crc16;
+
+  if (((func == MODBUS_FUNC_READ_HOLDING_REGISTERS || func == MODBUS_FUNC_READ_INPUT_REGISTERS) && value >= 1) || (func == MODBUS_FUNC_WRITE_SINGLE_REGISTER))
+  {
+    buf_msg[0] = MODBUS_ANY_ADDRESS;    // Address
+    buf_msg[1] = func;                  // Function
+    buf_msg[2] = (reg >> 8) & 0x00FF;   // High-input register
+    buf_msg[3] = reg & 0x00FF;          // Low-input register
+    buf_msg[4] = (value >> 8) & 0x00FF; // High-word to read or setup
+    buf_msg[5] = value & 0x00FF;        // Low-word to read or setup
+    crc16 = AgMb16Crc(buf_msg, 6);
+    buf_msg[6] = crc16 & 0x00FF;
+    buf_msg[7] = (crc16 >> 8) & 0x00FF;
+    uartWriteBytes(8);
+  }
 }
