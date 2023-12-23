@@ -63,7 +63,21 @@ const AirGradientBsp_t bsps[BOARD_DEF_MAX] =
 			.supported = false,
 			.rgbSupported = false,
 		},
-    .name = "BOARD_DIY_BASIC_KIT",
+    .OLED = 
+		{
+#if defined(ESP8266)
+			.width = 64,
+			.height = 48,
+			.addr = 0x3C,
+			.supported = true,
+#else
+			.width = 0,
+			.height = 0,
+			.addr = 0,
+			.supported = false,
+#endif
+		},
+		.name = "BOARD_DIY_BASIC_KIT",
   },
   /** BOARD_DIY_PRO_INDOOR_V4_2 */
   [0x01] = 
@@ -117,6 +131,20 @@ const AirGradientBsp_t bsps[BOARD_DEF_MAX] =
 			.onState = 0,
 			.supported = false,
 			.rgbSupported = false,
+		},
+    .OLED = 
+		{
+#if defined(ESP8266)
+			.width = 128,
+			.height = 64,
+			.addr = 0x3C,
+			.supported = true,
+#else
+			.width = 0,
+			.height = 0,
+			.addr = 0,
+			.supported = false,
+#endif
 		},
 		.name = "BOARD_DIY_PRO_INDOOR_V4_2",
   },
@@ -182,6 +210,20 @@ const AirGradientBsp_t bsps[BOARD_DEF_MAX] =
 			.rgbSupported = true,
 #endif
 		},
+    .OLED = 
+		{
+#if defined(ESP8266)
+			.width = 0,
+			.height = 0,
+			.addr = 0,
+			.supported = false,
+#else
+			.width = 128,
+			.height = 64,
+			.addr = 0x3C,
+			.supported = true,
+#endif
+		},
 		.name = "BOARD_ONE_INDOOR_MONITOR_V9_0",
   },
   /** BOARD_OUTDOOR_MONITOR_V1_3 */
@@ -244,6 +286,20 @@ const AirGradientBsp_t bsps[BOARD_DEF_MAX] =
 			.onState = 1,
 			.supported = true,
 			.rgbSupported = false,
+#endif
+		},
+		.OLED = 
+		{
+#if defined(ESP8266)
+			.width = 0,
+			.height = 0,
+			.addr = 0,
+			.supported = false,
+#else
+			.width = 128,
+			.height = 64,
+			.addr = 0x3C,
+			.supported = true,
 #endif
 		},
 		.name = "BOARD_OUTDOOR_MONITOR_V1_3",
@@ -339,6 +395,15 @@ void AirGradientBspPrint(Stream *_debug)
 			{
 				bspPrintf("\t\tLED state ON: %d (Single LED)", bsps[i].LED.onState);
 			}
+		}
+
+		bspPrintf("\tOLED");
+		bspPrintf("\t\tSupported: %d", bsps[i].OLED.supported);
+		if (bsps[i].OLED.supported)
+		{
+			bspPrintf("\t\tWidth   : %d", bsps[i].OLED.width);
+			bspPrintf("\t\tHeigth  : %d", bsps[i].OLED.height);
+			bspPrintf("\t\tI2C Addr: %d", bsps[i].OLED.addr);
 		}
 	}
 }

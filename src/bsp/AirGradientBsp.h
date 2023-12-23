@@ -78,6 +78,15 @@ struct AirGradientBsp_t
     const bool supported;     /** SUpported LED */
     const bool rgbSupported;  /** LED is RGB */
   }LED;
+
+  /** OLED */
+  struct 
+  {
+    const uint8_t width;    /** Display Width */
+    const uint8_t height;   /** Display height */
+    const uint8_t addr;     /** OLED I2C address */
+    const bool supported;
+  } OLED;
   const char* name;
 };
 
