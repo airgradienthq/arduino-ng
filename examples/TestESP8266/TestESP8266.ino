@@ -14,7 +14,8 @@
 #define TEST_SENSOR_PMS5003             0
 #define TEST_SENSOR_SHT4x               0
 #define TEST_SENSOR_SGP4x               0
-#define TEST_SWITCH                     1
+#define TEST_SWITCH                     0
+#define TEST_OLED                       1
 
 #if TEST_SENSOR_SenseAirS8
 
@@ -67,6 +68,16 @@ AirGradientSwitch sw(BOARD_DIY_PRO_INDOOR_V4_2, Serial);
 #endif
 #endif
 
+#if TEST_OLED
+
+#if TEST_BOARD_DIY_BASIC_KIT
+AirGradientOled oled(BOARD_DIY_BASIC_KIT, Serial);
+#elif TEST_BOARD_DIY_PRO_INDOOR_V4_2
+AirGradientOled oled(BOARD_DIY_PRO_INDOOR_V4_2, Serial);
+#endif
+
+#endif
+
 void setup()
 {
   Serial.begin(115200);
@@ -83,6 +94,15 @@ void setup()
   {
     Serial.println("CO2S8 sensor init failure");
   }
+
+  if(co2s8.manualCalib())
+  {
+    Serial.println("Manual calib success");
+  }
+  else 
+  {
+    Serial.println("Manual calib failure");
+  }
 #endif
 
 #if TEST_SENSOR_PMS5003
@@ -96,7 +116,7 @@ void setup()
   }
 #endif
 
-#if TEST_SENSOR_SHT4x || TEST_SENSOR_SGP4x
+#if TEST_SENSOR_SHT4x || TEST_SENSOR_SGP4x || TEST_OLED
   Wire.begin();
 #endif
 
@@ -125,6 +145,15 @@ void setup()
 #if TEST_SWITCH
   sw.begin();
 #endif
+
+#if TEST_OLED
+  oled.begin(Wire);
+  oled.setTextSize(1);
+  oled.setCursor(0, 0);
+  oled.setTextColor(1);
+  oled.setText("Hello");
+  oled.display();
+#endif
 }
 
 void loop()
@@ -141,7 +170,7 @@ void loop()
     if(ms >= 1000)
     {
       lastTime = millis();
-      Serial.printf("CO2: %d (PMM)\r\n", co2s8.getCO2(1));
+      Serial.printf("CO2: %d (PMM)\r\n", co2s8.getCO2());
     }
   }
 #endif

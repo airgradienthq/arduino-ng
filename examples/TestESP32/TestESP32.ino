@@ -10,17 +10,18 @@
 /**
  * @brief Define test board
  */
-#define TEST_BOARD_OUTDOOR_MONITOR_V1_3       1
-#define TEST_BOARD_ONE_INDOOR_MONITOR_V9_0    0
+#define TEST_BOARD_OUTDOOR_MONITOR_V1_3       0
+#define TEST_BOARD_ONE_INDOOR_MONITOR_V9_0    1
 /**
  * @brief Define test sensor
  */
-#define TEST_SENSOR_SenseAirS8                0
-#define TEST_SENSOR_PMS5003                   0
-#define TEST_SENSOR_SHT4x                     0
-#define TEST_SENSOR_SGP4x                     0
+#define TEST_SENSOR_SenseAirS8                1
+#define TEST_SENSOR_PMS5003                   1
+#define TEST_SENSOR_SHT4x                     1
+#define TEST_SENSOR_SGP4x                     1
 #define TEST_LED                              1
-#define TEST_SWITCH                           1
+#define TEST_SWITCH                           0
+#define TEST_OLED                             1
 
 #if TEST_SENSOR_SenseAirS8
 
@@ -84,6 +85,19 @@ AirGradientSwitch sw(BOARD_ONE_INDOOR_MONITOR_V9_0);
 #endif
 #endif
 
+#if TEST_OLED
+
+#if TEST_BOARD_OUTDOOR_MONITOR_V1_3
+// AirGradientOled oled(BOARD_DIY_BASIC_KIT, Serial);
+#elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
+AirGradientOled oled(BOARD_ONE_INDOOR_MONITOR_V9_0);
+#else
+#error "No test board defined"
+#endif
+
+#endif
+
+
 void setup()
 {
   /** Print All AirGradient board define */
@@ -101,6 +115,14 @@ void setup()
   {
     log_i("CO2S8 sensor init failure");
   }
+
+  // Calib sensor
+  // Disable ABC calib
+  // bool result = co2s8.setCalibPeriodABC(0);
+  // log_i("Disable auto calib: %s", result?"Success":"Failure");
+
+  // bool result = co2s8.manualCalib();
+  // log_i("Maunal calib: %s", result?"Success":"Failure");
 #endif
 
 #if TEST_SENSOR_PMS5003
@@ -114,18 +136,9 @@ void setup()
   }
 #endif
 
-#if TEST_SENSOR_SHT4x || TEST_SENSOR_SGP4x
-#if TEST_SENSOR_SHT4x
-  if(sht.boardSupported())
-  {
-    Wire.begin(sht.sdaPin(), sht.sclPin());
-  }
-#else
-  if(sgp.boardSupported())
-  {
-    Wire.begin(sgp.sdaPin(), sgp.sclPin());
-  }
-#endif
+#if TEST_SENSOR_SHT4x || TEST_SENSOR_SGP4x || TEST_OLED
+  const AirGradientBsp_t* bsp = AirGradientBspGet(BOARD_ONE_INDOOR_MONITOR_V9_0);
+  Wire.begin(AirGradientBspGet_I2C_SDA(bsp), AirGradientBspGet_I2C_SCL(bsp));
 #endif
 
 #if TEST_SENSOR_SHT4x
@@ -158,6 +171,16 @@ void setup()
 #if TEST_SWITCH
   sw.begin();
 #endif
+
+#if TEST_OLED
+  oled.begin(Wire);
+
+  oled.setTextSize(1);
+  oled.setCursor(0, 0);
+  oled.setTextColor(1);
+  oled.setText("Hello");
+  oled.display();
+#endif
 }
 
 void loop()
@@ -174,7 +197,7 @@ void loop()
     if(ms >= 1000)
     {
       lastTime = millis();
-      log_i("CO2: %d (PPM)", co2s8.getCO2(1));
+      log_i("CO2: %d (PPM)", co2s8.getCO2());
     }
   }
   else 
