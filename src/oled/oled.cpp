@@ -12,14 +12,16 @@
 #include "oled.h"
 #include "../library/Adafruit_SH110x/Adafruit_SH110X.h"
 #include "../library/Adafruit_SSD1306_Wemos_OLED/Adafruit_SSD1306.h"
-#if defined(ESP8266)
-#define disp() ((Adafruit_SSD1306 *)(this->oled))
-#else
-#define disp() ((Adafruit_SH110X *)(this->oled))
-#endif
 
-Adafruit_SH1106G _disp32 = Adafruit_SH1106G(1, 1, &Wire, -1);
-Adafruit_SSD1306 _disp8266 = Adafruit_SSD1306();
+#define disp(func)                             \
+  if (this->_boardType == BOARD_DIY_BASIC_KIT) \
+  {                                            \
+    ((Adafruit_SSD1306 *)(this->oled))->func;  \
+  }                                            \
+  else                                         \
+  {                                            \
+    ((Adafruit_SH110X *)(this->oled))->func;   \
+  }
 
 #if defined(ESP8266)
 AirGradientOled::AirGradientOled(AirGradientBoardType_t type, Stream &debugStream) : _boardType(type),
@@ -50,48 +52,87 @@ void AirGradientOled::begin(TwoWire &wire)
   }
 
   /** Init OLED */
-#if defined(ESP8266)
-  this->oled = new Adafruit_SSD1306();
-#else
-  this->oled = new Adafruit_SH1106G(64, 48, &wire);
-#endif
+  if(this->_boardType == BOARD_DIY_BASIC_KIT)
+  {
+    AgLog("Init Adafruit_SSD1306");
+    Adafruit_SSD1306* _oled = new Adafruit_SSD1306();
+    _oled->begin(wire, SSD1306_SWITCHCAPVCC, this->_bsp->OLED.addr);
+    this->oled = _oled;
+  }
+  else 
+  {
+    AgLog("Init Adafruit_SH1106G");
+    Adafruit_SH1106G* _oled = new Adafruit_SH1106G(this->_bsp->OLED.width, this->_bsp->OLED.height, &wire);
+    _oled->begin(this->_bsp->OLED.addr, false);
+    this->oled = _oled;
+  }
+
   this->_isInit = true;
+  disp(clearDisplay());
   AgLog("Init");
 }
 
 void AirGradientOled::clearDisplay(void)
 {
-  disp()->clearDisplay();
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(clearDisplay());
 }
 
 void AirGradientOled::invertDisplay(uint8_t i)
 {
-  disp()->invertDisplay(i);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(invertDisplay(i));
 }
 
 void AirGradientOled::display()
 {
-  disp()->display();
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(display());
 }
 
 void AirGradientOled::setContrast(uint8_t value)
 {
-  disp()->setContrast(value);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(setContrast(value));
 }
 
 void AirGradientOled::drawPixel(int16_t x, int16_t y, uint16_t color)
 {
-  disp()->drawPixel(x, y, color);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(drawPixel(x, y, color));
 }
 
 void AirGradientOled::setTextSize(int size)
 {
-  disp()->setTextSize(size);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(setTextSize(size));
 }
 
 void AirGradientOled::setCursor(int16_t x, int16_t y)
 {
-  disp()->setCursor(x, y);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(setCursor(x, y));
 }
 
 /**
@@ -101,7 +142,11 @@ void AirGradientOled::setCursor(int16_t x, int16_t y)
  */
 void AirGradientOled::setTextColor(uint16_t color)
 {
-  disp()->setTextColor(color);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(setTextColor(color));
 }
 
 /**
@@ -112,16 +157,39 @@ void AirGradientOled::setTextColor(uint16_t color)
  */
 void AirGradientOled::setTextColor(uint16_t color, uint16_t bg)
 {
-  disp()->setTextColor(color, bg);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(setTextColor(color, bg));
 }
 
 void AirGradientOled::setText(String text)
 {
-  disp()->print(text);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(print(text));
 }
 
 void AirGradientOled::drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
                                  int16_t w, int16_t h, uint16_t color)
 {
-  disp()->drawBitmap(x, y, bitmap, w, h, color);
+  if(this->checkInit() == false)
+  {
+    return;
+  }
+  disp(drawBitmap(x, y, bitmap, w, h, color));
+}
+
+bool AirGradientOled::checkInit(void)
+{
+  if(this->_isInit)
+  {
+    return true;
+  }
+
+  AgLog("OLED is not init");
+  return false;
 }
