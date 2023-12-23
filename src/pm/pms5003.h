@@ -52,6 +52,7 @@ public:
   void requestRead();
   bool read(DATA &data);
   bool readUntil(DATA &data, uint16_t timeout = SINGLE_RESPONSE_TIME);
+  int pm25ToAQI(int pm02);
 
 private:
   enum STATUS
