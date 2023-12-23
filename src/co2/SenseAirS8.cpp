@@ -829,6 +829,11 @@ uint8_t SenseAirS8::uartReadBytes(uint8_t max_bytes, uint32_t timeout_ms)
     {
       break;
     }
+
+#if defined(ESP32)
+    // Relax 5ms to avoid watchdog reset
+    vTaskDelay(pdMS_TO_TICKS(5));
+#endif
   }
   return nb;
 }

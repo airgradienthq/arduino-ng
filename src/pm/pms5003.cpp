@@ -249,7 +249,11 @@ bool PMS5003::readUntil(DATA &data, uint16_t timeout)
   {
     loop();
     if (_status == STATUS_OK)
+    {
       break;
+    }
+    // Relax 5 ms to keep avoid watchdog trigger
+    vTaskDelay(pdMS_TO_TICKS(5));
   } while (millis() - start < timeout);
 
   return _status == STATUS_OK;
