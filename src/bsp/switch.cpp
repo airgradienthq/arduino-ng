@@ -38,7 +38,14 @@ void AirGradientSwitch::begin(void)
     return;
   }
 
-  pinMode(this->_bsp->SW.pin, INPUT);
+  if(this->_boardType == BOARD_DIY_PRO_INDOOR_V4_2)
+  {
+    pinMode(this->_bsp->SW.pin, INPUT_PULLUP);
+  }
+  else 
+  {
+    pinMode(this->_bsp->SW.pin, INPUT);
+  }
 
   this->_isInit = true;
   AgLog("Init");
