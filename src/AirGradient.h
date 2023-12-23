@@ -22,5 +22,6 @@
 #include "pm/pms5003.h"
 #include "sht/sht4x.h"
 #include "sgp/sgp4x.h"
+#include "oled/oled.h"
 
 #endif /** _AIR_GRADIENT_H_ */
