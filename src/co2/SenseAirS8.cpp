@@ -118,6 +118,11 @@ bool SenseAirS8::isReady(void)
  */
 void SenseAirS8::getFirmwareVersion(char firmver[])
 {
+  if(this->isInit() == false)
+  {
+    return;
+  }
+
   if (firmver == NULL)
   {
     return;
@@ -151,6 +156,10 @@ void SenseAirS8::getFirmwareVersion(char firmver[])
  */
 int32_t SenseAirS8::getSensorTypeId(void)
 {
+  if(this->isInit() == false)
+  {
+    return -1;
+  }
 
   int32_t sensorType = 0;
 
@@ -200,6 +209,10 @@ int32_t SenseAirS8::getSensorTypeId(void)
  */
 int32_t SenseAirS8::getSensorId(void)
 {
+  if(this->isInit() == false)
+  {
+    return -1;
+  }
 
   int32_t sensorID = 0;
 
@@ -249,6 +262,11 @@ int32_t SenseAirS8::getSensorId(void)
  */
 int16_t SenseAirS8::getMemoryMapVersion(void)
 {
+  if (this->isInit() == false)
+  {
+    return - 1;
+  }
+
   int16_t mmVersion = 0;
 
   // Ask memory map version
@@ -279,6 +297,11 @@ int16_t SenseAirS8::getMemoryMapVersion(void)
  */
 int16_t SenseAirS8::getCO2(void)
 {
+  if (this->isInit() == false)
+  {
+    return -1;
+  }
+
   int16_t co2 = 0;
 
   // Ask CO2 value
@@ -309,6 +332,11 @@ int16_t SenseAirS8::getCO2(void)
  */
 int16_t SenseAirS8::getOutputPWM(void)
 {
+  if (this->isInit() == false)
+  {
+    return -1;
+  }
+
   int16_t pwm = 0;
 
   // Ask PWM output
@@ -340,6 +368,11 @@ int16_t SenseAirS8::getOutputPWM(void)
  */
 int16_t SenseAirS8::getCalibPeriodABC(void)
 {
+  if (this->isInit() == false)
+  {
+    return -1;
+  }
+
   int16_t period = 0;
 
   // Ask ABC period
@@ -372,6 +405,11 @@ int16_t SenseAirS8::getCalibPeriodABC(void)
  */
 bool SenseAirS8::setCalibPeriodABC(int16_t period)
 {
+  if (this->isInit() == false)
+  {
+    return false;
+  }
+
   uint8_t buf_msg_sent[8];
   bool result = false;
 
@@ -416,6 +454,11 @@ bool SenseAirS8::setCalibPeriodABC(int16_t period)
  */
 bool SenseAirS8::manualCalib(void)
 {
+  if (this->isInit() == false)
+  {
+    return false;
+  }
+
   bool result = clearAcknowledgement();
 
   if (result)
@@ -442,6 +485,11 @@ bool SenseAirS8::manualCalib(void)
  */
 int16_t SenseAirS8::getAcknowledgement(void)
 {
+  if (this->isInit() == false)
+  {
+    return -1;
+  }
+
   int16_t flags = 0;
 
   // Ask acknowledgement flags
@@ -472,6 +520,11 @@ int16_t SenseAirS8::getAcknowledgement(void)
  */
 bool SenseAirS8::clearAcknowledgement(void)
 {
+  if(this->isInit() == false)
+  {
+    return false;
+  }
+
   uint8_t buf_msg_sent[8];
   bool result = false;
 
@@ -506,6 +559,10 @@ bool SenseAirS8::clearAcknowledgement(void)
  */
 int16_t SenseAirS8::getAlarmStatus(void)
 {
+  if(this->isInit() == false)
+  {
+    return -1;
+  }
 
   int16_t status = 0;
 
@@ -536,6 +593,11 @@ int16_t SenseAirS8::getAlarmStatus(void)
  */
 SenseAirS8::Status SenseAirS8::getStatus(void)
 {
+  if(this->isInit() == false)
+  {
+    return (Status)0;
+  }
+
   int16_t status = 0;
 
   // Ask meter status
@@ -565,6 +627,11 @@ SenseAirS8::Status SenseAirS8::getStatus(void)
  */
 int16_t SenseAirS8::getOutputStatus(void)
 {
+  if(this->isInit() == false)
+  {
+    return -1;
+  }
+
   int16_t status = 0;
 
   // Ask output status
@@ -596,6 +663,11 @@ int16_t SenseAirS8::getOutputStatus(void)
  */
 bool SenseAirS8::sendSpecialCommand(CalibrationSpecialComamnd command)
 {
+  if(this->isInit() == false)
+  {
+    return false;
+  }
+
   uint8_t buf_msg_sent[8];
   bool result = false;
 
@@ -694,9 +766,11 @@ bool SenseAirS8::init(int txPin, int rxPin, uint32_t baud)
 
   /** Check communication by get firmware version */
   char fwVers[11];
+  this->_isInit = true;
   this->getFirmwareVersion(fwVers);
   if(strlen(fwVers) == 0)
   {
+    this->_isInit = false;
     return false;
   }
   AgLog("Firmware version: %s", fwVers);
