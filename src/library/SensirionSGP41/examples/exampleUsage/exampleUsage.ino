@@ -35,10 +35,13 @@
  */
 
 #include <Arduino.h>
-#include <SensirionI2CSgp40.h>
+#include <SensirionI2CSgp41.h>
 #include <Wire.h>
 
-SensirionI2CSgp40 sgp40;
+SensirionI2CSgp41 sgp41;
+
+// time in seconds needed for NOx conditioning
+uint16_t conditioning_s = 10;
 
 void setup() {
 
@@ -52,12 +55,12 @@ void setup() {
     uint16_t error;
     char errorMessage[256];
 
-    sgp40.begin(Wire);
+    sgp41.begin(Wire);
 
-    uint16_t serialNumber[3];
     uint8_t serialNumberSize = 3;
+    uint16_t serialNumber[serialNumberSize];
 
-    error = sgp40.getSerialNumber(serialNumber, serialNumberSize);
+    error = sgp41.getSerialNumber(serialNumber);
 
     if (error) {
         Serial.print("Error trying to execute getSerialNumber(): ");
@@ -77,7 +80,7 @@ void setup() {
     }
 
     uint16_t testResult;
-    error = sgp40.executeSelfTest(testResult);
+    error = sgp41.executeSelfTest(testResult);
     if (error) {
         Serial.print("Error trying to execute executeSelfTest(): ");
         errorToString(error, errorMessage, 256);
@@ -94,16 +97,28 @@ void loop() {
     uint16_t defaultRh = 0x8000;
     uint16_t defaultT = 0x6666;
     uint16_t srawVoc = 0;
+    uint16_t srawNox = 0;
 
     delay(1000);
 
-    error = sgp40.measureRawSignal(defaultRh, defaultT, srawVoc);
+    if (conditioning_s > 0) {
+        // During NOx conditioning (10s) SRAW NOx will remain 0
+        error = sgp41.executeConditioning(defaultRh, defaultT, srawVoc);
+        conditioning_s--;
+    } else {
+        // Read Measurement
+        error = sgp41.measureRawSignals(defaultRh, defaultT, srawVoc, srawNox);
+    }
+
     if (error) {
-        Serial.print("Error trying to execute measureRawSignal(): ");
+        Serial.print("Error trying to execute measureRawSignals(): ");
         errorToString(error, errorMessage, 256);
         Serial.println(errorMessage);
     } else {
         Serial.print("SRAW_VOC:");
-        Serial.println(srawVoc);
+        Serial.print(srawVoc);
+        Serial.print("\t");
+        Serial.print("SRAW_NOx:");
+        Serial.println(srawNox);
     }
 }

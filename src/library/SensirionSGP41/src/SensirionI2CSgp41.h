@@ -36,29 +36,48 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef SENSIRIONI2CSGP40_H
-#define SENSIRIONI2CSGP40_H
+#ifndef SENSIRIONI2CSGP41_H
+#define SENSIRIONI2CSGP41_H
 
 #include <Wire.h>
 
-#include "SensirionI2CSgp40.h"
 #include "../../SensirionCore/src/SensirionCore.h"
 
-class SensirionI2CSgp40 {
+class SensirionI2CSgp41 {
 
   public:
-    SensirionI2CSgp40();
+    SensirionI2CSgp41();
     /**
-     * begin() - Initializes the SensirionI2CSgp40 class.
+     * begin() - Initializes the SensirionI2CSgp41 class.
      *
-     * @param serial Arduino stream object to be communicated with.
+     * @param i2cBus Arduino stream object to use for communication.
      *
      */
     void begin(TwoWire& i2cBus);
 
     /**
-     * measureRawSignal() - This command starts/continues the VOC measurement
-     * mode
+     * executeConditioning() - This command starts the conditioning, i.e., the
+     * VOC pixel will be operated at the same temperature as it is by calling
+     * the sgp41_measure_raw command while the NOx pixel will be operated at a
+     * different temperature for conditioning. This command returns only the
+     * measured raw signal of the VOC pixel SRAW_VOC as 2 bytes (+ 1 CRC byte).
+     *
+     * @param defaultRh Default conditions for relative humidty.
+     *
+     * @param defaultT Default conditions for temperature.
+     *
+     * @param srawVoc u16 unsigned integer directly provides the raw signal
+     * SRAW_VOC in ticks which is proportional to the logarithm of the
+     * resistance of the sensing element.
+     *
+     * @return 0 on success, an error code otherwise
+     */
+    uint16_t executeConditioning(uint16_t defaultRh, uint16_t defaultT,
+                                 uint16_t& srawVoc);
+
+    /**
+     * measureRawSignals() - This command starts/continues the VOC+NOx
+     * measurement mode
      *
      * @param relativeHumidity Leaves humidity compensation disabled by sending
      * the default value 0x8000 (50%RH) or enables humidity compensation when
@@ -72,18 +91,25 @@ class SensirionI2CSgp40 {
      * SRAW_VOC in ticks which is proportional to the logarithm of the
      * resistance of the sensing element.
      *
+     * @param srawNox u16 unsigned integer directly provides the raw signal
+     * SRAW_NOX in ticks which is proportional to the logarithm of the
+     * resistance of the sensing element.
+     *
      * @return 0 on success, an error code otherwise
      */
-    uint16_t measureRawSignal(uint16_t relativeHumidity, uint16_t temperature,
-                              uint16_t& srawVoc);
+    uint16_t measureRawSignals(uint16_t relativeHumidity, uint16_t temperature,
+                               uint16_t& srawVoc, uint16_t& srawNox);
 
     /**
      * executeSelfTest() - This command triggers the built-in self-test checking
-     * for integrity of the hotplate and MOX material and returns the result of
+     * for integrity of both hotplate and MOX material and returns the result of
      * this test as 2 bytes
      *
-     * @param testResult 0xD4 00: all tests passed successfully or 0x4B 00: one
-     * or more tests have failed
+     * @param testResult 0xXX 0xYY: ignore most significant byte 0xXX. The four
+     * least significant bits of the least significant byte 0xYY provide
+     * information if the self-test has or has not passed for each individual
+     * pixel. All zero mean all tests passed successfully. Check the datasheet
+     * for more detailed information.
      *
      * @return 0 on success, an error code otherwise
      */
@@ -99,16 +125,16 @@ class SensirionI2CSgp40 {
 
     /**
      * getSerialNumber() - This command provides the decimal serial number of
-     * the SGP40 chip by returning 3x2 bytes.
+     * the SGP41 chip by returning 3x2 bytes.
      *
      * @param serialNumber 48-bit unique serial number
      *
      * @return 0 on success, an error code otherwise
      */
-    uint16_t getSerialNumber(uint16_t serialNumber[], uint8_t serialNumberSize);
+    uint16_t getSerialNumber(uint16_t serialNumber[]);
 
   private:
     TwoWire* _i2cBus = nullptr;
 };
 
-#endif /* SENSIRIONI2CSGP40_H */
+#endif /* SENSIRIONI2CSGP41_H */

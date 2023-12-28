@@ -1,11 +1,11 @@
-# Sensirion I2C SGP40 Arduino Library
+# Sensirion I2C SGP41 Arduino Library
 
-This is the Sensirion SGP40 library for Arduino using the
+This is the Sensirion SGP41 library for Arduino using the
 modules I2C interface.
 
-[<center><img src="images/SGP40.png" width="300px"></center>](https://www.sensirion.com/en/environmental-sensors/gas-sensors/sgp40)
+[<center><img src="images/SGP41.png" width="300px"></center>](https://www.sensirion.com/en/environmental-sensors/gas-sensors/sgp41)
 
-Click [here](https://www.sensirion.com/en/environmental-sensors/gas-sensors/sgp40) to learn more about the SGP40 sensor.
+Click [here](https://www.sensirion.com/en/environmental-sensors/gas-sensors/sgp41) to learn more about the SGP41 sensor.
 
 
 # Installation
@@ -27,19 +27,19 @@ Note: Installation via the Arduino Library Manager is coming soon.
 
 # Quick Start
 
-1. Connect the SGP40 Sensor to your Arduino board's standard
+1. Connect the SGP41 Sensor to your Arduino board's standard
    I2C bus. Check the pinout of your Arduino board to find the correct pins.
-   The pinout of the SGP40 Sensor board can be found in the
+   The pinout of the SGP41 Sensor board can be found in the
    data sheet.
 
-	* **VDD** of the SEK-SGP40 to the **3.3V** of your Arduino board
-	* **GND** of the SEK-SGP40 to the **GND** of your Arduino board
-	* **SCL** of the SEK-SGP40 to the **SCL** of your Arduino board
-	* **SDA** of the SEK-SGP40 to the **SDA** of your Arduino board
+	* **VDD** of the SEK-SGP41 to the **3.3V** of your Arduino board
+	* **GND** of the SEK-SGP41 to the **GND** of your Arduino board
+	* **SCL** of the SEK-SGP41 to the **SCL** of your Arduino board
+	* **SDA** of the SEK-SGP41 to the **SDA** of your Arduino board
 
 2. Open the `exampleUsage` sample project within the Arduino IDE
 
-		File => Examples => Sensirion I2C SGP40 => exampleUsage
+		File => Examples => Sensirion I2C SGP41 => exampleUsage
 
 3. Click the `Upload` button in the Arduino IDE or
 
