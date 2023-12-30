@@ -1,0 +1,174 @@
+/**
+ * @file sgp4x.cpp
+ * @author Phat N. (phat@pdiytech.com)
+ * @brief AirGradient library for SGP4x from Sensirion, this lib is covert
+ * libaray publish by Sensirion https://github.com/Sensirion/arduino-i2c-sgp40
+ * @version 0.1
+ * @date 2023-Dec-20
+ *
+ * @copyright Copyright (c) 2023
+ *
+ */
+
+#include "sgp41.h"
+#include "../library/SensirionSGP41/src/SensirionI2CSgp41.h"
+
+#define sgpSensor() ((SensirionI2CSgp41 *)(this->_sensor))
+
+Sgp41::Sgp41(BoardType type) : _boardType(type) {}
+
+/**
+ * @brief Sensor intialize, if initialize fail, other function call always
+ * return false or invalid valid
+ *
+ * @param wire TwoWire instance
+ * @return true Success
+ * @return false Failure
+ */
+bool Sgp41::begin(TwoWire &wire) {
+  if (this->_isInit) {
+    return true;
+  }
+  if (this->boardSupported() == false) {
+    return false;
+  }
+  this->_sensor = new SensirionI2CSgp41();
+  sgpSensor()->begin(wire);
+
+  uint16_t testResult;
+  if (sgpSensor()->executeSelfTest(testResult) != 0) {
+    return false;
+  }
+  if (testResult != 0xD400) {
+    AgLog("Self-test failed");
+    return false;
+  }
+
+  this->_isInit = true;
+  AgLog("Init");
+  return true;
+}
+
+#if defined(ESP8266)
+bool Sgp41::begin(TwoWire &wire, Stream &stream) {
+  this->_debugStream = &stream;
+  return this->begin(wire);
+}
+#endif
+
+void Sgp41::end(void) {
+  if (this->_isInit == false) {
+    return;
+  }
+
+  this->_isInit = false;
+  delete sgpSensor();
+
+  AgLog("De-Init");
+}
+
+/**
+ * @brief Get TVOC index
+ *
+ * @return int -1 if invalid
+ */
+int Sgp41::getTvocIndex(void) {
+  uint16_t voc, nox;
+  if (this->getRawSignal(voc, nox)) {
+    return voc;
+  }
+  return -1;
+}
+
+/**
+ * @brief Get NOX index
+ *
+ * @return int -1 if invalid
+ */
+int Sgp41::getNoxIndex(void) {
+  uint16_t voc, nox;
+  if (this->getRawSignal(voc, nox)) {
+    return nox;
+  }
+  return -1;
+}
+
+bool Sgp41::boardSupported(void) {
+  if (this->bsp == nullptr) {
+    this->bsp = getBoardDef(this->_boardType);
+  }
+
+  if ((this->bsp == nullptr) || (this->bsp->I2C.supported == false)) {
+    AgLog("Board not supported");
+    return false;
+  }
+  return true;
+}
+
+int Sgp41::sdaPin(void) {
+  if (this->bsp) {
+    return this->bsp->I2C.sda_pin;
+  }
+  AgLog("sdaPin(): board not supported I2C");
+  return -1;
+}
+
+int Sgp41::sclPin(void) {
+  if (this->bsp) {
+    return this->bsp->I2C.scl_pin;
+  }
+  AgLog("sdlPin(): board not supported I2C");
+  return -1;
+}
+
+bool Sgp41::getRawSignal(uint16_t &raw_voc, uint16_t &row_nox,
+                         uint16_t defaultRh, uint16_t defaultT) {
+  if (this->checkInit() == false) {
+    return false;
+  }
+
+  if (sgpSensor()->measureRawSignals(defaultRh, defaultT, raw_voc, row_nox) ==
+      0) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * @brief This command turns the hotplate off and stops the measurement.
+ *        Subsequently, the sensor enters the idle mode.
+ *
+ * @return true Success
+ * @return false Failure
+ */
+bool Sgp41::turnHeaterOff(void) {
+  if (this->checkInit() == false) {
+    return false;
+  }
+
+  if (sgpSensor()->turnHeaterOff() == 0) {
+    return true;
+  }
+  return false;
+}
+
+bool Sgp41::getSerialNumber(uint16_t serialNumbers[],
+                            uint8_t serialNumberSize) {
+  if (this->checkInit() == false) {
+    return false;
+  }
+
+  if (sgpSensor()->getSerialNumber(serialNumbers) == 0) {
+    return true;
+  }
+  return false;
+}
+
+bool Sgp41::checkInit(void) {
+  if (this->_isInit) {
+    return true;
+  }
+  AgLog("Sensor no-initialized");
+  return false;
+}

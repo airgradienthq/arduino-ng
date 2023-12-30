@@ -2,169 +2,102 @@
 #include <Wire.h>
 
 /**
- * AirGradient use ESP32C3 has default Serial0 use for PMS5003, to print log should
- * use esp-hal-log instead.
+ * AirGradient use ESP32C3 has default Serial0 use for PMS5003, to print log
+ * should use esp-hal-log instead.
  */
 #include <esp32-hal-log.h>
 
 /**
  * @brief Define test board
  */
-#define TEST_BOARD_OUTDOOR_MONITOR_V1_3       0
-#define TEST_BOARD_ONE_INDOOR_MONITOR_V9_0    1
+#define TEST_BOARD_OUTDOOR_MONITOR_V1_3 1
+#define TEST_BOARD_ONE_INDOOR_MONITOR_V9_0 0
 /**
  * @brief Define test sensor
  */
-#define TEST_SENSOR_SenseAirS8                1
-#define TEST_SENSOR_PMS5003                   1
-#define TEST_SENSOR_SHT4x                     1
-#define TEST_SENSOR_SGP4x                     1
-#define TEST_LED                              1
-#define TEST_SWITCH                           0
-#define TEST_OLED                             1
+#define TEST_SENSOR_SenseAirS8 0
+#define TEST_SENSOR_SHT4x 0
+#define TEST_SENSOR_SGP4x 0
+#define TEST_LED 0
+#define TEST_SWITCH 0
+#define TEST_OLED 0
+#if TEST_BOARD_OUTDOOR_MONITOR_V1_3
+#define TEST_STATUS_LED 0
+#define TEST_PMS5003T 1
+#endif
+#define TEST_WATCHDOG 1
 
-#if TEST_SENSOR_SenseAirS8
+#if TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
+#define TEST_LED_BAR 0
+#define TEST_SENSOR_PMS5003 1
+#endif
 
 #if TEST_BOARD_OUTDOOR_MONITOR_V1_3
-SenseAirS8 co2s8(BOARD_OUTDOOR_MONITOR_V1_3);
+AirGradient ag(BOARD_OUTDOOR_MONITOR_V1_3);
 #elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
-SenseAirS8 co2s8(BOARD_ONE_INDOOR_MONITOR_V9_0);
+AirGradient ag(BOARD_ONE_INDOOR_MONITOR_V9_0);
 #else
-#error "No test board defined"
-#endif /** TEST_BOARD_DIY_BASIC_KIT */
-
-#endif /** TEST_SENSOR_SenseAirS8 */
-
-#if TEST_SENSOR_PMS5003
-#if TEST_BOARD_OUTDOOR_MONITOR_V1_3
-PMS5003 pms(BOARD_OUTDOOR_MONITOR_V1_3, Serial);
-#elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
-PMS5003 pms(BOARD_ONE_INDOOR_MONITOR_V9_0, Serial);
-#else
-#error "No test board defined"
-#endif /** TEST_BOARD_DIY_BASIC_KIT */
-#endif /** TEST_SENSOR_PMS5003 */
-
-#if TEST_SENSOR_SHT4x
-#if TEST_BOARD_OUTDOOR_MONITOR_V1_3
-AirGradientSht sht(BOARD_OUTDOOR_MONITOR_V1_3);
-#elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
-AirGradientSht sht(BOARD_ONE_INDOOR_MONITOR_V9_0);
-#else
-#error "No test board defined"
-#endif
-#endif /** TEST_SENSOR_SHT4x */
-
-#if TEST_SENSOR_SGP4x
-#if TEST_BOARD_OUTDOOR_MONITOR_V1_3
-AirGradientSgp4x sgp(BOARD_OUTDOOR_MONITOR_V1_3);
-#elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
-AirGradientSgp4x sgp(BOARD_ONE_INDOOR_MONITOR_V9_0);
-#else
-#error "No test board defined"
-#endif
+#error "Must enable board test
 #endif
 
-#if TEST_LED
-#if TEST_BOARD_OUTDOOR_MONITOR_V1_3
-AirGradientLED led(BOARD_OUTDOOR_MONITOR_V1_3);
-#elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
-AirGradientLED led(BOARD_ONE_INDOOR_MONITOR_V9_0);
-#else
-#error "No test board defined"
-#endif
-#endif
-
-#if TEST_SWITCH
-#if TEST_BOARD_OUTDOOR_MONITOR_V1_3
-AirGradientSwitch sw(BOARD_OUTDOOR_MONITOR_V1_3);
-#elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
-AirGradientSwitch sw(BOARD_ONE_INDOOR_MONITOR_V9_0);
-#else
-#error "No test board defined"
-#endif
-#endif
-
-#if TEST_OLED
-
-#if TEST_BOARD_OUTDOOR_MONITOR_V1_3
-// AirGradientOled oled(BOARD_DIY_BASIC_KIT, Serial);
-#elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
-AirGradientOled oled(BOARD_ONE_INDOOR_MONITOR_V9_0);
-#else
-#error "No test board defined"
-#endif
-
-#endif
-
-const AirGradientBsp_t* bsp;
-
-void watchDogInit(void);
-void watchDogFeed(void);
-
-void setup()
-{
+void setup() {
 
   /** Print All AirGradient board define */
-  AirGradientBspPrint(NULL);
+  printBoardDef(NULL);
 
 #if TEST_SENSOR_SenseAirS8
-  /** Cause Serial is use default for PMS, CO2S8 should be use Serial 1 
-   * Serial 1 will be init by SenseAirS8 don't need to init any more on user code
-  */
-  if (co2s8.begin(Serial1) == true)
-  {
+  /** Cause Serial is use default for PMS, CO2S8 should be use Serial 1
+   * Serial 1 will be init by SenseAirS8 don't need to init any more on user
+   * code
+   */
+  if (ag.s8.begin(Serial1)) {
     log_i("CO2S8 sensor init success");
-  }
-  else
-  {
+  } else {
     log_i("CO2S8 sensor init failure");
   }
 
-  // Calib sensor
-  // Disable ABC calib
-  // bool result = co2s8.setCalibPeriodABC(0);
-  // log_i("Disable auto calib: %s", result?"Success":"Failure");
-
-  // bool result = co2s8.manualCalib();
-  // log_i("Maunal calib: %s", result?"Success":"Failure");
+  log_i("Start baseline calib");
+  if (ag.s8.setBaselineCalibration()) {
+    log_i("Calib success");
+  } else {
+    log_e("Calib failure");
+  }
+  delay(5000); // Wait for calib done
 #endif
 
 #if TEST_SENSOR_PMS5003
-  if (pms.begin() == true)
-  {
+  if (ag.pms5003.begin(Serial)) {
     log_i("PMS5003 sensor init success");
-  }
-  else
-  {
+  } else {
     log_i("PMS5003 sensor init failure");
   }
 #endif
 
+#if TEST_PMS5003T
+  if (ag.pms5003t.begin(Serial)) {
+    log_i("PMS500T3 sensor init success");
+  } else {
+    log_i("PMS5003T sensor init failure");
+  }
+#endif
+
 #if TEST_SENSOR_SHT4x || TEST_SENSOR_SGP4x || TEST_OLED
-  const AirGradientBsp_t* bsp = AirGradientBspGet(BOARD_ONE_INDOOR_MONITOR_V9_0);
-  Wire.begin(AirGradientBspGet_I2C_SDA(bsp), AirGradientBspGet_I2C_SCL(bsp));
+  Wire.begin(ag.getI2cSdaPin(), ag.getI2cSclPin());
 #endif
 
 #if TEST_SENSOR_SHT4x
 
-  if(sht.begin(Wire))
-  {
+  if (ag.sht.begin(Wire)) {
     log_i("SHT init success");
-  }
-  else 
-  {
+  } else {
     log_i("SHT init failed");
   }
 #endif
 
 #if TEST_SENSOR_SGP4x
-  if(sgp.begin(Wire))
-  {
+  if (ag.sgp41.begin(Wire)) {
     log_i("SGP init success");
-  }
-  else
-  {
+  } else {
     log_e("SGP init failure");
   }
 #endif
@@ -174,41 +107,41 @@ void setup()
 #endif
 
 #if TEST_SWITCH
-  sw.begin();
+  ag.button.begin();
 #endif
 
 #if TEST_OLED
-  oled.begin(Wire);
+  ag.display.begin(Wire);
+  ag.display.setTextSize(1);
+  ag.display.setCursor(0, 0);
+  ag.display.setTextColor(1);
+  ag.display.setText("Hello");
+  ag.display.show();
+#endif
 
-  oled.setTextSize(1);
-  oled.setCursor(0, 0);
-  oled.setTextColor(1);
-  oled.setText("Hello");
-  oled.display();
+#if TEST_STATUS_LED
+  ag.statusLed.begin();
+#endif
+
+#if TEST_LED_BAR
+  ag.ledBar.begin();
+#endif
+
+#if TEST_WATCHDOG
+  ag.watchdog.begin();
 #endif
 }
 
-void loop()
-{
+void loop() {
   uint32_t ms;
 #if TEST_SENSOR_SenseAirS8
-  static uint32_t  lastTime = 0;
+  static uint32_t lastTime = 0;
 
   /** Wait for sensor ready */
-  if(co2s8.isReady())
-  {
-    // Get sensor data each 1sec
-    ms = (uint32_t)(millis() - lastTime);
-    if(ms >= 1000)
-    {
-      lastTime = millis();
-      log_i("CO2: %d (PPM)", co2s8.getCO2());
-    }
-  }
-  else 
-  {
-    log_i("Wait for sensor ready");
-    delay(1000);
+  ms = (uint32_t)(millis() - lastTime);
+  if (ms >= 1000) {
+    lastTime = millis();
+    log_i("CO2: %d (PPM)", ag.s8.getCo2());
   }
 #endif
 
@@ -216,19 +149,34 @@ void loop()
   static uint32_t pmsTime = 0;
   ms = (uint32_t)(millis() - pmsTime);
 
-  if(ms >= 1000)
-  {
+  if (ms >= 1000) {
     pmsTime = millis();
-
-    PMS5003::DATA data;
-    if(pms.readUntil(data, 3000))
-    {
-      log_i("Passive mode PM 1.0  (ug/m3): %d", data.PM_AE_UG_1_0);
-      log_i("Passive mode PM 2.5  (ug/m3): %d", data.PM_AE_UG_2_5);
-      log_i("Passive mode PM 10.5 (ug/m3): %d", data.PM_AE_UG_10_0);
+    if (ag.pms5003.readData()) {
+      log_i("Passive mode PM 1.0  (ug/m3): %d", ag.pms5003.getPm10Ae());
+      log_i("Passive mode PM 2.5  (ug/m3): %d", ag.pms5003.getPm25Ae());
+      log_i("Passive mode PM 10.0 (ug/m3): %d", ag.pms5003.getPm10Ae());
+    } else {
+      log_i("PMS sensor read failure");
     }
-    else 
-    {
+  }
+#endif
+
+#if TEST_PMS5003T
+  static uint32_t pmsTime = 0;
+  ms = (uint32_t)(millis() - pmsTime);
+
+  if (ms >= 1000) {
+    pmsTime = millis();
+    if (ag.pms5003t.readData()) {
+      log_i("Passive mode PM 1.0  (ug/m3): %d", ag.pms5003t.getPm10Ae());
+      log_i("Passive mode PM 2.5  (ug/m3): %d", ag.pms5003t.getPm25Ae());
+      log_i("Passive mode PM 10.0 (ug/m3): %d", ag.pms5003t.getPm10Ae());
+      log_i("Passive mode PM 3.0  (ug/m3): %d", ag.pms5003t.getPm03ParticleCount());
+      log_i("Temperature                 : %02f °C",
+            ag.pms5003t.getTemperature());
+      log_i("Humidity                    : %02f %%",
+            ag.pms5003t.getRelativeHumidity());
+    } else {
       log_i("PMS sensor read failure");
     }
   }
@@ -237,40 +185,26 @@ void loop()
 #if TEST_SENSOR_SHT4x
   /**
    * @brief Get SHT sensor data each 1sec
-   * 
+   *
    */
   static uint32_t shtTime = 0;
   ms = (uint32_t)(millis() - shtTime);
-  if(ms >= 1000)
-  {
+  if (ms >= 1000) {
     shtTime = millis();
-    float temperature, humidity;
-    if(sht.measureHighPrecision(temperature, humidity))
-    {
-      log_i("SHT temperature: %f, humidity: %f", temperature, humidity);
-    }
-    else
-    {
-      log_e("SHT sensor read failure");
-    }
+    log_i("Get sht temperature: %0.2f (degree celsius)",
+          ag.sht.getTemperature());
+    log_i("Get sht temperature: %0.2f (%%)", ag.sht.getRelativeHumidity());
   }
 #endif
 
 #if TEST_SENSOR_SGP4x
   static uint32_t sgpTime;
   ms = (uint32_t)(millis() - sgpTime);
-  if(ms >= 1000)
-  {
+  if (ms >= 1000) {
     sgpTime = millis();
     uint16_t rawVOC;
-    if(sgp.getRawSignal(rawVOC))
-    {
-      log_i("Get SGP Raw VOC: %d", rawVOC);
-    }
-    else 
-    {
-      log_e("Get SGP Raw VOC failure");
-    }
+    log_i("Get TVOC: %d", ag.sgp41.getTvocIndex());
+    log_i("Get NOx: %d", ag.sgp41.getNoxIndex());
   }
 #endif
 
@@ -284,19 +218,15 @@ void loop()
   //   led.ledToggle();
   // }
 #elif TEST_BOARD_ONE_INDOOR_MONITOR_V9_0
-  
+
   static int ledIndex;
   static int ledIndexOld;
   ms = (uint32_t)(millis() - ledTime);
-  if(ms >= 50)
-  {
+  if (ms >= 50) {
     ledTime = millis();
-    if(ledIndex == ledIndexOld)
-    {
+    if (ledIndex == ledIndexOld) {
       led.ledOff();
-    }
-    else
-    {
+    } else {
       // Turn last LED off
       led.ledSetColor(0, 0, 0, ledIndexOld);
     }
@@ -305,68 +235,94 @@ void loop()
     led.ledSetColor(255, 0, 0, ledIndex);
     ledIndexOld = ledIndex;
     ledIndex++;
-    if (ledIndex >= led.getNumberOfLed())
-    {
+    if (ledIndex >= led.getNumberOfLed()) {
       ledIndex = 0;
     }
   }
 #else
 #endif
-  
+
 #endif
 
 #if TEST_SWITCH
-  if(sw.getState() == AirGradientSwitch::Presssed)
-  {
-#if TEST_LED
-    led.ledOn();
-#endif
+  static PushButton::State stateOld = PushButton::State::BUTTON_RELEASED;
+  PushButton::State state = ag.button.getState();
+  if (state != stateOld) {
+    stateOld = state;
+    log_i("Button state changed: %s", ag.button.toString(state).c_str());
+    if (state == PushButton::State::BUTTON_PRESSED) {
+      ag.statusLed.setOn();
+    } else {
+      ag.statusLed.setOff();
+    }
   }
-  else 
-  {
-#if TEST_LED
-    led.ledOff();
 #endif
+
+#if TEST_LED_BAR
+  static uint8_t ledNum = 0;
+  static uint32_t ledTime;
+  static uint8_t ledIndex = 0;
+  static uint8_t ledStep = 0;
+
+  if (ledNum == 0) {
+    ledNum = ag.ledBar.getNumberOfLed();
+    log_i("Get number of led: %d", ledNum);
+    if (ledNum) {
+      ag.ledBar.setBrighness(0xff);
+      for (int i = 0; i < ledNum; i++) {
+        ag.ledBar.setColor(0xff, 0, 0, i);
+      }
+    }
+  } else {
+    ms = (uint32_t)(millis() - ledTime);
+    if (ms >= 500) {
+      ledTime = millis();
+
+      switch (ledStep) {
+      case 0: {
+        ag.ledBar.setOn(ledIndex);
+        ledIndex++;
+        if (ledIndex >= ledNum) {
+          // ag.ledBar.setOff();
+          ledIndex = 0;
+          ledStep = 1;
+        }
+        break;
+      }
+      case 1: {
+        ag.ledBar.setToggle();
+        ledIndex++;
+        if (ledIndex >= ledNum) {
+          ag.ledBar.setOn();
+          ledIndex = ledNum - 1;
+          ledStep = 2;
+        }
+        break;
+      }
+      case 2: {
+        ag.ledBar.setOff(ledIndex);
+        ledIndex--;
+        if (ledIndex == 0) {
+          ag.ledBar.setOff();
+          ledStep = 0;
+          ledIndex = 0;
+        }
+        break;
+      }
+      default:
+        break;
+      }
+    }
   }
-  log_i("Switch state: %d", sw.getState());
-  vTaskDelay(50);
 #endif
 
-  watchDogFeed();
-}
-
-void watchDogInit(void)
-{
-  bsp = AirGradientBspGet(BOARD_ONE_INDOOR_MONITOR_V9_0);
-  AirGradientBspWdgInit(bsp);
-  log_i("WatchDog init");
-}
-
-void watchDogFeed(void)
-{
-  static uint32_t wdgTime = 0;
-  static bool wdgBegin = false;
-  uint32_t ms;
-  
+#if TEST_WATCHDOG
+  static uint32_t wdgTime;
   ms = (uint32_t)(millis() - wdgTime);
-  if (wdgBegin)
-  {
-    if (ms >= 30)
-    {
-      wdgBegin = false;
-      wdgTime = millis();
-      AirGradientBspWdgFeedEnd(bsp);
-      log_i("Watchdog Feed end");
-    }
+  if (ms >= (1000 * 60)) {
+    wdgTime = millis();
+    /** Reset watchdog reach 1 minutes */
+    ag.watchdog.reset();
   }
-  else
-  {
-    if (ms >= 2500)
-    {
-      wdgTime = millis();
-      AirGradientBspWdgFeedBegin(bsp);
-      wdgBegin = true;
-      log_i("Watchdog Feed begin");
-    }
-  }
+#endif
 }
