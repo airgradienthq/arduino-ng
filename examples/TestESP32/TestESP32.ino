@@ -10,17 +10,17 @@
 /**
  * @brief Define test board
  */
-#define TEST_BOARD_OUTDOOR_MONITOR_V1_3 1
-#define TEST_BOARD_ONE_INDOOR_MONITOR_V9_0 0
+#define TEST_BOARD_OUTDOOR_MONITOR_V1_3 0
+#define TEST_BOARD_ONE_INDOOR_MONITOR_V9_0 1
 /**
  * @brief Define test sensor
  */
-#define TEST_SENSOR_SenseAirS8 0
-#define TEST_SENSOR_SHT4x 0
-#define TEST_SENSOR_SGP4x 0
+#define TEST_SENSOR_SenseAirS8 1
+#define TEST_SENSOR_SHT4x 1
+#define TEST_SENSOR_SGP4x 1
 #define TEST_LED 0
 #define TEST_SWITCH 0
-#define TEST_OLED 0
+#define TEST_OLED 1
 #if TEST_BOARD_OUTDOOR_MONITOR_V1_3
 #define TEST_STATUS_LED 0
 #define TEST_PMS5003T 1
@@ -66,7 +66,7 @@ void setup() {
 #endif
 
 #if TEST_SENSOR_PMS5003
-  if (ag.pms5003.begin(Serial)) {
+  if (ag.pms5003.begin(Serial0)) {
     log_i("PMS5003 sensor init success");
   } else {
     log_i("PMS5003 sensor init failure");
@@ -115,7 +115,7 @@ void setup() {
   ag.display.setTextSize(1);
   ag.display.setCursor(0, 0);
   ag.display.setTextColor(1);
-  ag.display.setText("Hello");
+  ag.display.setText("180s to connect to wifi hostpost AC-xxxxx");
   ag.display.show();
 #endif
 
