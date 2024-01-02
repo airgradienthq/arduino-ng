@@ -1,15 +1,3 @@
-/**
- * @file sgp4x.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient library for SGP4x from Sensirion, this lib is cover
- * libaray publish by Sensirion https://github.com/Sensirion/arduino-i2c-sgp40
- * @version 0.1
- * @date 2023-Dec-20
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _AIR_GRADIENT_SGP4X_H_
 #define _AIR_GRADIENT_SGP4X_H_
 

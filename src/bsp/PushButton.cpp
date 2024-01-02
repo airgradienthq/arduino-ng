@@ -1,14 +1,3 @@
-/**
- * @file switch.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient Switch
- * @version 0.1
- * @date 2023-Dec-20
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "PushButton.h"
 
 PushButton::PushButton(BoardType type) : _boardType(type) {}

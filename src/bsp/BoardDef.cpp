@@ -1,14 +1,3 @@
-/**
- * @file board_defs.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient board define
- * @version 0.1
- * @date 2023-Dec-16
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "BoardDef.h"
 #if defined(ESP32)
 #include "esp32-hal-log.h"

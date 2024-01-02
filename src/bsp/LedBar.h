@@ -1,15 +1,3 @@
-/**
- * @file led.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient LED, this library will be cover the library
- * Adafruit_NeoPixel https://github.com/adafruit/Adafruit_NeoPixel
- * @version 0.1
- * @date 2023-Dec-20
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _AIR_GRADIENT_LED_H_
 #define _AIR_GRADIENT_LED_H_
 

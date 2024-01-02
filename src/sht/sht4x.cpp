@@ -1,14 +1,3 @@
-/**
- * @file sht.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient sensor library
- * @version 0.1
- * @date 2023-Dec-17
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "sht4x.h"
 #include "../library/SensirionSHT4x/src/SensirionI2CSht4x.h"
 

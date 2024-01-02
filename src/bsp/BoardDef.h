@@ -1,14 +1,3 @@
-/**
- * @file board_defs.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient board define
- * @version 0.1
- * @date 2023-Dec-16
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _AIR_GRADIENT_BOARD_DEF_H_
 #define _AIR_GRADIENT_BOARD_DEF_H_
 

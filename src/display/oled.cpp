@@ -1,14 +1,3 @@
-/**
- * @file oled.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient OLED library
- * @version 0.1
- * @date 2023-Dec-23
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "oled.h"
 #include "../library/Adafruit_SH110x/Adafruit_SH110X.h"
 #include "../library/Adafruit_SSD1306_Wemos_OLED/Adafruit_SSD1306.h"

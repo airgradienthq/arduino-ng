@@ -1,14 +1,3 @@
-/**
- * @file AirGradient.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient library source
- * @version 0.1
- * @date 2023-Dec-28
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "AirGradient.h"
 
 AirGradient::AirGradient(BoardType type)

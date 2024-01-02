@@ -1,14 +1,3 @@
-/**
- * @file HardwareWatchdog.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief Hardware watchdog header
- * @version 0.1
- * @date 2023-Dec-30
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _HARDWARE_WATCHDOG_H_
 #define _HARDWARE_WATCHDOG_H_
 

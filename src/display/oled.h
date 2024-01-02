@@ -1,18 +1,3 @@
-/**
- * @file oled.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient OLEd libaray this is base on library
- * - https://github.com/adafruit/Adafruit_SH110X
- * - https://github.com/adafruit/Adafruit-GFX-Library
- * - https://github.com/stblassitude/Adafruit_SSD1306_Wemos_OLED
- * - https://github.com/adafruit/Adafruit_BusIO
- * @version 0.1
- * @date 2023-Dec-23
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _AIR_GRADIENT_OLED_H_
 #define _AIR_GRADIENT_OLED_H_
 

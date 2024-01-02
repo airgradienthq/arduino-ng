@@ -1,15 +1,3 @@
-/**
- * @file sht.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient SHT sensor library this library is cover the library from
- *        Sension SHT4x https://github.com/Sensirion/arduino-i2c-sht4x
- * @version 0.1
- * @date 2023-Dec-17
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _AIR_GRADIENT_SHT_H_
 #define _AIR_GRADIENT_SHT_H_
 

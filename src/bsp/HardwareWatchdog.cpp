@@ -1,14 +1,3 @@
-/**
- * @file HardwareWatchdog.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief Hardware Watchdog source
- * @version 0.1
- * @date 2023-Dec-30
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "HardwareWatchdog.h"
 
 HardwareWatchdog::HardwareWatchdog(BoardType type) : boardType(type) {}

@@ -1,15 +1,3 @@
-/**
- * @file pms5003.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient Plantower PMS5003 sensor this library is reference from
- * https://github.com/fu-hsi/pms
- * @version 0.1
- * @date 2023-Dec-17
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _AIR_GRADIENT_PMS5003_H_
 #define _AIR_GRADIENT_PMS5003_H_
 

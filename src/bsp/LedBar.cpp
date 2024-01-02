@@ -1,14 +1,3 @@
-/**
- * @file led.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient board LED control
- * @version 0.1
- * @date 2023-Dec-20
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "LedBar.h"
 
 #include "../library/Adafruit_NeoPixel/Adafruit_NeoPixel.h"

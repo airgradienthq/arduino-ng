@@ -1,14 +1,3 @@
-/**
- * @file s8.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief Arigradient libarary for Senseair S8 NDIR CO2 sensor
- * @version 0.1
- * @date 2023-Dec-16
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "s8.h"
 #include "mb_crc.h"
 #if defined(ESP8266)

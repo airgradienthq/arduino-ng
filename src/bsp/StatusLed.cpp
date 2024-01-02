@@ -1,14 +1,3 @@
-/**
- * @file StatusLed.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief StatusLed source
- * @version 0.1
- * @date 2023-Dec-30
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "StatusLed.h"
 
 StatusLed::StatusLed(BoardType boardType) : boardType(boardType) {}

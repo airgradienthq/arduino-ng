@@ -1,14 +1,3 @@
-/**
- * @file mb_crc.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient Modbus CRC calculation
- * @version 0.1
- * @date 2023-Dec-23
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "mb_crc.h"
 #include <stdint.h>
 

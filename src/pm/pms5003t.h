@@ -1,14 +1,3 @@
-/**
- * @file pms5003t.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief PMS5003T header
- * @version 0.1
- * @date 2023-Dec-30
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _PMS5003T_H_
 #define _PMS5003T_H_
 

@@ -1,15 +1,3 @@
-/**
- * @file s8.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief Arigradient libarary for Senseair S8 NDIR CO2 sensor, this libaray
- * port base on library from https://github.com/jcomas/S8_UART
- * @version 0.1
- * @date 2023-Dec-16
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _S8_H_
 #define _S8_H_
 

@@ -1,14 +1,3 @@
-/**
- * @file StatusLed.h
- * @author Phat N. (phat@pdiytech.com)
- * @brief Single LED header
- * @version 0.1
- * @date 2023-Dec-30
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #ifndef _STATUS_LED_H_
 #define _STATUS_LED_H_
 

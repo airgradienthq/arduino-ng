@@ -1,14 +1,3 @@
-/**
- * @file PMS5003Tt.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief PMS5003TT source
- * @version 0.1
- * @date 2023-Dec-30
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "pms5003t.h"
 #include "Arduino.h"
 

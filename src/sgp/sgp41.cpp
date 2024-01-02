@@ -1,15 +1,3 @@
-/**
- * @file sgp4x.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient library for SGP4x from Sensirion, this lib is covert
- * libaray publish by Sensirion https://github.com/Sensirion/arduino-i2c-sgp40
- * @version 0.1
- * @date 2023-Dec-20
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "sgp41.h"
 #include "../library/SensirionSGP41/src/SensirionI2CSgp41.h"
 

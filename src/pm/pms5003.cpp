@@ -1,14 +1,3 @@
-/**
- * @file pms5003.cpp
- * @author Phat N. (phat@pdiytech.com)
- * @brief AirGradient Plantower PMS5003 sensor
- * @version 0.1
- * @date 2023-Dec-17
- *
- * @copyright Copyright (c) 2023
- *
- */
-
 #include "pms5003.h"
 #include "Arduino.h"
 
