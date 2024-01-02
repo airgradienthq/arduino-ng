@@ -17,8 +17,12 @@ public:
   int getNoxIndex(void);
 
 private:
+  uint32_t conditionStart = 0;
+  bool ready = false;
   bool _isInit = false;
   void *_sensor;
+  void *_vocAlgorithm;
+  void *_noxAlgorithm;
   const BoardDef *bsp = nullptr;
   BoardType _boardType;
 #if defined(ESP8266)

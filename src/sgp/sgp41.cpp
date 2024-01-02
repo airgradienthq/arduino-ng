@@ -1,7 +1,11 @@
 #include "sgp41.h"
 #include "../library/SensirionSGP41/src/SensirionI2CSgp41.h"
+#include "../library/Sensirion_Gas_Index_Algorithm/src/NOxGasIndexAlgorithm.h"
+#include "../library/Sensirion_Gas_Index_Algorithm/src/VOCGasIndexAlgorithm.h"
 
-#define sgpSensor() ((SensirionI2CSgp41 *)(this->_sensor))
+#define sgpSensor()                     ((SensirionI2CSgp41 *)(this->_sensor))
+#define vocAlgorithm()                  ((VOCGasIndexAlgorithm *)(this->_vocAlgorithm))
+#define noxAlgorithm()                  ((NOxGasIndexAlgorithm *)(this->_noxAlgorithm))
 
 Sgp41::Sgp41(BoardType type) : _boardType(type) {}
 
@@ -20,6 +24,12 @@ bool Sgp41::begin(TwoWire &wire) {
   if (this->boardSupported() == false) {
     return false;
   }
+
+  /** Init algorithm */
+  _vocAlgorithm = new VOCGasIndexAlgorithm();
+  _noxAlgorithm = new NOxGasIndexAlgorithm();
+
+  /** Init sensor */
   this->_sensor = new SensirionI2CSgp41();
   sgpSensor()->begin(wire);
 
@@ -31,7 +41,7 @@ bool Sgp41::begin(TwoWire &wire) {
     AgLog("Self-test failed");
     return false;
   }
-
+  this->conditionStart = millis();
   this->_isInit = true;
   AgLog("Init");
   return true;
@@ -63,7 +73,8 @@ void Sgp41::end(void) {
 int Sgp41::getTvocIndex(void) {
   uint16_t voc, nox;
   if (this->getRawSignal(voc, nox)) {
-    return voc;
+    // return voc;
+    return vocAlgorithm()->process(voc); 
   }
   return -1;
 }
@@ -76,7 +87,8 @@ int Sgp41::getTvocIndex(void) {
 int Sgp41::getNoxIndex(void) {
   uint16_t voc, nox;
   if (this->getRawSignal(voc, nox)) {
-    return nox;
+    // return nox;
+    return noxAlgorithm()->process(nox); 
   }
   return -1;
 }
@@ -115,6 +127,17 @@ bool Sgp41::getRawSignal(uint16_t &raw_voc, uint16_t &row_nox,
     return false;
   }
 
+  if (this->ready == false) {
+    sgpSensor()->executeConditioning(defaultRh, defaultT, raw_voc);
+    uint32_t ms = (uint32_t)(millis() - this->conditionStart);
+    if (ms >= 10000) {
+      goto measure;
+      this->ready = true;
+    }
+    return false;
+  }
+
+measure:
   if (sgpSensor()->measureRawSignals(defaultRh, defaultT, raw_voc, row_nox) ==
       0) {
     return true;

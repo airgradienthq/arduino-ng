@@ -48,10 +48,10 @@ bool PMS5003::begin(void) {
   }
 
 #if defined(ESP32)
-  if (this->_serial != &Serial) {
-    AgLog("Hardware serial must be Serial(0)");
-    return false;
-  }
+  // if (this->_serial != &Serial) {
+  //   AgLog("Hardware serial must be Serial(0)");
+  //   return false;
+  // }
 #endif
 
   this->bsp = getBoardDef(this->_boardDef);
@@ -81,7 +81,7 @@ bool PMS5003::begin(void) {
     return false;
   }
 
-  if (pms->readDeviceType() != Conplug_PMS5003T::PMS3003) {
+  if (pms->readDeviceType() != Conplug_PMS5003T::PMS5003T) {
     AgLog("Device type invalid");
   }
 

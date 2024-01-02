@@ -27,8 +27,13 @@ public:
   void setTextColor(uint16_t color);
   void setTextColor(uint16_t foreGroundColor, uint16_t backGroundColor);
   void setText(String text);
+  void setText(const char text[]);
   void drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[], int16_t w,
                   int16_t h, uint16_t color);
+  void drawLine(int x0, int y0, int x1, int y1, uint16_t color);
+  void drawCircle(int x, int y, int r, uint16_t color);
+  void drawRect(int x0, int y0, int x1, int y1, uint16_t color);
+  void setRotation(uint8_t r);
 
 private:
   BoardType _boardType;

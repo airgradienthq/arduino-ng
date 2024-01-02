@@ -35,8 +35,7 @@ void Display::begin(TwoWire &wire) {
     this->oled = _oled;
   } else {
     AgLog("Init Adafruit_SH1106G");
-    Adafruit_SH1106G *_oled = new Adafruit_SH1106G(
-        this->_bsp->OLED.width, this->_bsp->OLED.height, &wire);
+    Adafruit_SH1106G *_oled = new Adafruit_SH1106G(this->_bsp->OLED.width, this->_bsp->OLED.height, &wire);
     _oled->begin(this->_bsp->OLED.addr, false);
     this->oled = _oled;
   }
@@ -135,11 +134,45 @@ void Display::drawBitmap(int16_t x, int16_t y, const uint8_t bitmap[],
   disp(drawBitmap(x, y, bitmap, w, h, color));
 }
 
+void Display::setText(const char text[]) {
+  if (this->checkInit() == false) {
+    return;
+  }
+  disp(print(text));
+}
+
+void Display::drawLine(int x0, int y0, int x1, int y1, uint16_t color) {
+  if (this->checkInit() == false) {
+    return;
+  }
+  disp(drawLine(x0, y0, x1, y1, color));
+}
+
+void Display::drawCircle(int x, int y, int r, uint16_t color) {
+  if (this->checkInit() == false) {
+    return;
+  }
+  disp(drawCircle(x, y, r, color));
+}
+
+void Display::drawRect(int x0, int y0, int x1, int y1, uint16_t color) {
+  if (this->checkInit() == false) {
+    return;
+  }
+  disp(drawRect(x0, y0, x1, y1, color));
+}
+
 bool Display::checkInit(void) {
   if (this->_isInit) {
     return true;
   }
-
   AgLog("OLED is not init");
   return false;
+}
+
+void Display::setRotation(uint8_t r) {
+  if (checkInit() == false) {
+    return;
+  }
+  disp(setRotation(r));
 }

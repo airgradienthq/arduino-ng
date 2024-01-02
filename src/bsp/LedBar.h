@@ -20,9 +20,11 @@ public:
   void setToggle(void);
   void setToggle(int ledNum);
   void setColor(uint8_t red, uint8_t green, uint8_t blue, int ledNum);
+  void setColor(uint8_t red, uint8_t green, uint8_t blue);
   void setBrighness(uint8_t brightness);
 
   int getNumberOfLed(void);
+  // void show(void);
 
 private:
   struct Led {

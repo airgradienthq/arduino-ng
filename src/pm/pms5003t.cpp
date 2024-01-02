@@ -48,10 +48,10 @@ bool PMS5003T::begin(void) {
   }
 
 #if defined(ESP32)
-  if (this->_serial != &Serial) {
-    AgLog("Hardware serial must be Serial(0)");
-    return false;
-  }
+  // if (this->_serial != &Serial) {
+  //   AgLog("Hardware serial must be Serial(0)");
+  //   return false;
+  // }
 #endif
 
   this->bsp = getBoardDef(this->_boardDef);
@@ -72,7 +72,8 @@ bool PMS5003T::begin(void) {
   uart->begin(9600);
   pms = new Conplug_PMS5003T(uart);
 #else
-  this->_serial->begin(9600);
+  this->_serial->begin(9600, SERIAL_8N1, bsp->PMS5003.uart_tx_pin,
+                       bsp->PMS5003.uart_rx_pin);
   pms = new Conplug_PMS5003T(this->_serial);
 #endif
 

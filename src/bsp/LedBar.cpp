@@ -144,7 +144,7 @@ void LedBar::setColor(uint8_t red, uint8_t green, uint8_t blue, int ledNum) {
 
   if (this->_isLedOn(ledNum)) {
     pixel()->setPixelColor(ledNum, red, green, blue);
-    pixel()->show();
+    // pixel()->show();
   }
 }
 
@@ -235,3 +235,14 @@ void LedBar::_setToggle(int ledNum) {
     this->_setOn(ledNum);
   }
 }
+
+void LedBar::setColor(uint8_t red, uint8_t green, uint8_t blue) {
+  for (int ledNum = 0; ledNum < this->_bsp->LED.rgbNum; ledNum++) {
+    this->setColor(red, green, blue, ledNum);
+  }
+  this->setOn();
+}
+
+// void LedBar::show(void) {
+//   pixel()->show();
+// }
