@@ -64,6 +64,8 @@ public:
   int getI2cSdaPin(void);
   int getI2cSclPin(void);
 
+  String getVersion(void);
+
 private:
   BoardType boardType;
 };

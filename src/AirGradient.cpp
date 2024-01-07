@@ -1,5 +1,7 @@
 #include "AirGradient.h"
 
+#define AG_LIB_VER      "2.5.0"
+
 AirGradient::AirGradient(BoardType type)
     : pms5003(type), pms5003t(type), s8(type), sht(type), sgp41(type),
       display(type), boardType(type), button(type), statusLed(type),
@@ -30,3 +32,5 @@ int AirGradient::getI2cSclPin(void) {
   }
   return bsp->I2C.scl_pin;
 }
+
+String AirGradient::getVersion(void) { return AG_LIB_VER; }
