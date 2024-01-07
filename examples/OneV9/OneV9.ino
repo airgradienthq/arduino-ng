@@ -4,6 +4,7 @@
 #include <WiFiManager.h>
 
 #include <AirGradient.h>
+#include <U8g2lib.h>
 
 #define DEBUG true
 
@@ -386,7 +387,7 @@ void updateOLED3() {
   }
   ag.display.setCursor(1, 10 - 9);
   ag.display.setText(buf);
-  ag.display.show();
+  // ag.display.show();
 
   // Show hummidity
   if (hum >= 0) {
@@ -415,13 +416,13 @@ void updateOLED3() {
 
   ag.display.setCursor(1, 61 - 9);
   ag.display.setText("ppm");
-  ag.display.show();
+  // ag.display.show();
 
   ag.display.drawLine(45, 15, 45, 64, 1);
-  ag.display.show();
+  // ag.display.show();
   ag.display.setCursor(48, 27 - 9);
   ag.display.setText("PM2.5");
-  ag.display.show();
+  // ag.display.show();
 
   if (inUSAQI) {
     if (pm25 >= 0) {
@@ -431,7 +432,7 @@ void updateOLED3() {
     }
     ag.display.setCursor(48, 48 - 9);
     ag.display.setText(buf);
-    ag.display.show();
+    // ag.display.show();
     ag.display.setCursor(48, 61 - 9);
     ag.display.setText("AQI");
   } else {
