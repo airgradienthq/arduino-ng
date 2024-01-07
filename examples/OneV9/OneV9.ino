@@ -234,7 +234,7 @@ void updateOLED() {
     String ln1;
 
     if (inUSAQI) {
-      ln1 = "AQI:" + String(PM_TO_AQI_US(pm25)) + " CO2:" + String(Co2);
+      ln1 = "AQI:" + String(ag.pms5003.convertPm25ToUsAqi(pm25)) + " CO2:" + String(Co2);
     } else {
       ln1 = "PM:" + String(pm25) + " CO2:" + String(Co2);
     }
@@ -381,10 +381,8 @@ void updateOLED3() {
   } else {
     sprintf(buf, "%s", "-");
   }
-  ag.display.setFont(Display::FontFreeMono9Bold);
   ag.display.setCursor(1, 48 - 9);
   ag.display.setText(buf);
-  ag.display.setFont(Display::FontDefault);
 
   ag.display.setCursor(1, 61 - 9);
   ag.display.setText("ppm");
@@ -398,7 +396,7 @@ void updateOLED3() {
 
   if (inUSAQI) {
     if (pm25 >= 0) {
-      sprintf(buf, "%d", PM_TO_AQI_US(pm25));
+      sprintf(buf, "%d", ag.pms5003.convertPm25ToUsAqi(pm25));
     } else {
       sprintf(buf, "%s", "-");
     }
