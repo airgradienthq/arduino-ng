@@ -1,11 +1,14 @@
 /*
-Important: This code is only for the DIY PRO / AirGradient ONE PCB Version 9 with the ESP-C3 MCU.
+Important: This code is only for the DIY PRO / AirGradient ONE PCB Version 9
+with the ESP-C3 MCU.
 
-It is a high quality sensor showing PM2.5, CO2, TVOC, NOx, Temperature and Humidity on a small display and LEDbar and can send data over Wifi.
+It is a high quality sensor showing PM2.5, CO2, TVOC, NOx, Temperature and
+Humidity on a small display and LEDbar and can send data over Wifi.
 
 Build Instructions: https://www.airgradient.com/open-airgradient/instructions/
 
-Kits (including a pre-soldered version) are available: https://www.airgradient.com/indoor/
+Kits (including a pre-soldered version) are available:
+https://www.airgradient.com/indoor/
 
 The codes needs the following libraries installed:
 “WifiManager by tzapu, tablatronix” tested with version 2.0.11-beta
@@ -18,70 +21,37 @@ The codes needs the following libraries installed:
 Configuration:
 Please set in the code below the configuration parameters.
 
-If you have any questions please visit our forum at https://forum.airgradient.com/
+If you have any questions please visit our forum at
+https://forum.airgradient.com/
 
-If you are a school or university contact us for a free trial on the AirGradient platform.
-https://www.airgradient.com/
+If you are a school or university contact us for a free trial on the AirGradient
+platform. https://www.airgradient.com/
 
 CC BY-SA 4.0 Attribution-ShareAlike 4.0 International License
 
 */
 
-#include "PMS.h"
-
-#include <HardwareSerial.h>
-
-#include <Wire.h>
-
-#include "s8_uart.h"
-
+#include <EEPROM.h>
 #include <HTTPClient.h>
-
+#include <HardwareSerial.h>
 #include <WiFiManager.h>
 
-#include <Adafruit_NeoPixel.h>
-
-#include <EEPROM.h>
-
-#include "SHTSensor.h"
-
-#include <SensirionI2CSgp41.h>
-
-#include <NOxGasIndexAlgorithm.h>
-
-#include <VOCGasIndexAlgorithm.h>
-
+#include <AirGradient.h>
 #include <U8g2lib.h>
+
+#define FW_VER      "1.0.0"
 
 #define DEBUG true
 
-#define I2C_SDA 7
-#define I2C_SCL 6
-
 HTTPClient client;
-
-Adafruit_NeoPixel pixels(11, 10, NEO_GRB + NEO_KHZ800);
-SensirionI2CSgp41 sgp41;
-VOCGasIndexAlgorithm voc_algorithm;
-NOxGasIndexAlgorithm nox_algorithm;
-SHTSensor sht;
-
-PMS pms1(Serial0);
-
-PMS::DATA data1;
-
-S8_UART * sensor_S8;
-S8_sensor sensor;
-
-// time in seconds needed for NOx conditioning
-uint16_t conditioning_s = 10;
+AirGradient ag(BOARD_ONE_INDOOR_MONITOR_V9_0);
 
 // for peristent saving and loading
 int addr = 4;
 byte value;
 
 // Display bottom right
-U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
+U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE);
 
 String APIROOT = "http://hw.airgradient.com/";
 
@@ -97,7 +67,8 @@ boolean displayTop = true;
 // use RGB LED Bar
 boolean useRGBledBar = true;
 
-// set to true if you want to connect to wifi. You have 60 seconds to connect. Then it will go into an offline mode.
+// set to true if you want to connect to wifi. You have 60 seconds to connect.
+// Then it will go into an offline mode.
 boolean connectWIFI = true;
 
 int loopCount = 0;
@@ -137,74 +108,69 @@ int currentState;
 unsigned long pressedTime = 0;
 unsigned long releasedTime = 0;
 
+void boardInit(void);
+void failedHandler(void);
+
 void setup() {
   if (DEBUG) {
     Serial.begin(115200);
-    // see https://github.com/espressif/arduino-esp32/issues/6983
-    Serial.setTxTimeoutMs(0); // <<<====== solves the delay issue
   }
 
-  Wire.begin(I2C_SDA, I2C_SCL);
-  pixels.begin();
-  pixels.clear();
+  /** Init EEPROM */
+  EEPROM.begin(512);
 
-  Serial1.begin(9600, SERIAL_8N1, 0, 1);
-  Serial0.begin(9600);
+  /** Init I2C */
+  const int I2C_SDA = ag.getI2cSdaPin();
+  const int I2C_SCL = ag.getI2cSclPin();
+  Wire.begin(I2C_SDA, I2C_SCL);
+
+  /** Display init */
   u8g2.begin();
 
-  updateOLED2("Warming Up", "Serial Number:", String(getNormalizedMac()));
-  sgp41.begin(Wire);
-  delay(300);
+  /** Show boot display */
+  displayShowText("One V9", "Fw Ver: " + String(FW_VER), "Lib Ver: " + ag.getVersion());
+  delay(2000); /** Boot display wait */
 
-  sht.init(Wire);
-  //sht.setAccuracy(SHTSensor::SHT_ACCURACY_MEDIUM);
-  delay(300);
+  /** Init sensor */
+  boardInit();
 
-  //init Watchdog
-  pinMode(2, OUTPUT);
-  digitalWrite(2, LOW);
-
-  sensor_S8 = new S8_UART(Serial1);
-
-  EEPROM.begin(512);
-  delay(500);
-
-  // push button
-  pinMode(9, INPUT_PULLUP);
-
+  /** Get las configure */
   buttonConfig = String(EEPROM.read(addr)).toInt();
-  if (buttonConfig > 3) buttonConfig = 0;
-  delay(400);
+  if (buttonConfig > 3)
+    buttonConfig = 0;
+
+  // delay(400);
   setConfig();
   Serial.println("buttonConfig: " + String(buttonConfig));
-
-  updateOLED2("Press Button", "for LED test &", "offline mode");
+  displayShowText("Press Button", "for LED test &", "offline mode");
   delay(2000);
-  currentState = digitalRead(9);
-  if (currentState == LOW) {
+
+  if (ag.button.getState() == PushButton::BUTTON_PRESSED) {
     ledTest();
     return;
   }
 
-  updateOLED2("Press Button", "Now for", "Config Menu");
+  displayShowText("Press Button", "Now for", "Config Menu");
   delay(2000);
-  currentState = digitalRead(9);
-  if (currentState == LOW) {
-    updateOLED2("Entering", "Config Menu", "");
+
+  if (ag.button.getState() == PushButton::BUTTON_PRESSED) {
+    displayShowText("Entering", "Config Menu", "");
     delay(3000);
     lastState = HIGH;
     setConfig();
     inConf();
   }
 
-   if (connectWIFI) connectToWifi();
-    if (WiFi.status() == WL_CONNECTED) {
-      sendPing();
-      Serial.println(F("WiFi connected!"));
-      Serial.println("IP address: ");
-      Serial.println(WiFi.localIP());
-    }
-  updateOLED2("Warming Up", "Serial Number:", String(getNormalizedMac()));
+  if (connectWIFI)
+    connectToWifi();
+  if (WiFi.status() == WL_CONNECTED) {
+    sendPing();
+    Serial.println(F("WiFi connected!"));
+    Serial.println("IP address: ");
+    Serial.println(WiFi.localIP());
+  }
+  displayShowText("Warming Up", "Serial Number:", String(getNormalizedMac()));
+  delay(2000);
 }
 
 void loop() {
@@ -218,7 +184,7 @@ void loop() {
 }
 
 void ledTest() {
-  updateOLED2("LED Test", "running", ".....");
+  displayShowText("LED Test", "running", ".....");
   setRGBledColor('r');
   delay(1000);
   setRGBledColor('g');
@@ -229,53 +195,27 @@ void ledTest() {
   delay(1000);
   setRGBledColor('n');
   delay(1000);
-  //LED Test
+  // LED Test
 }
 
 void updateTVOC() {
-  uint16_t error;
-  char errorMessage[256];
-  uint16_t defaultRh = 0x8000;
-  uint16_t defaultT = 0x6666;
-  uint16_t srawVoc = 0;
-  uint16_t srawNox = 0;
-  uint16_t defaultCompenstaionRh = 0x8000; // in ticks as defined by SGP41
-  uint16_t defaultCompenstaionT = 0x6666; // in ticks as defined by SGP41
-  uint16_t compensationRh = 0; // in ticks as defined by SGP41
-  uint16_t compensationT = 0; // in ticks as defined by SGP41
-
   delay(1000);
-
-  compensationT = static_cast < uint16_t > ((temp + 45) * 65535 / 175);
-  compensationRh = static_cast < uint16_t > (hum * 65535 / 100);
-
-  if (conditioning_s > 0) {
-    error = sgp41.executeConditioning(compensationRh, compensationT, srawVoc);
-    conditioning_s--;
-  } else {
-    error = sgp41.measureRawSignals(compensationRh, compensationT, srawVoc,
-      srawNox);
-  }
 
   if (currentMillis - previousTVOC >= tvocInterval) {
     previousTVOC += tvocInterval;
-    if (error) {
-      TVOC = -1;
-      NOX = -1;
-      Serial.println(String(TVOC));
-    } else {
-      TVOC = voc_algorithm.process(srawVoc);
-      NOX = nox_algorithm.process(srawNox);
-      Serial.println(String(TVOC));
-    }
 
+    TVOC = ag.sgp41.getTvocIndex();
+    NOX = ag.sgp41.getNoxIndex();
+
+    Serial.println(String(TVOC));
+    Serial.println(String(TVOC));
   }
 }
 
 void updateCo2() {
   if (currentMillis - previousCo2 >= co2Interval) {
     previousCo2 += co2Interval;
-    Co2 = sensor_S8 -> get_co2();
+    Co2 = ag.s8.getCo2();
     Serial.println(String(Co2));
   }
 }
@@ -283,11 +223,11 @@ void updateCo2() {
 void updatePm() {
   if (currentMillis - previousPm >= pmInterval) {
     previousPm += pmInterval;
-    if (pms1.readUntil(data1, 2000)) {
-      pm01 = data1.PM_AE_UG_1_0;
-      pm25 = data1.PM_AE_UG_2_5;
-      pm10 = data1.PM_AE_UG_10_0;
-      pm03PCount = data1.PM_RAW_0_3;
+    if (ag.pms5003.readData()) {
+      pm01 = ag.pms5003.getPm01Ae();
+      pm25 = ag.pms5003.getPm25Ae();
+      pm10 = ag.pms5003.getPm10Ae();
+      pm03PCount = ag.pms5003.getPm03ParticleCount();
     } else {
       pm01 = -1;
       pm25 = -1;
@@ -300,15 +240,8 @@ void updatePm() {
 void updateTempHum() {
   if (currentMillis - previousTempHum >= tempHumInterval) {
     previousTempHum += tempHumInterval;
-
-    if (sht.readSample()) {
-      temp = sht.getTemperature();
-      hum = sht.getHumidity();
-    } else {
-      Serial.print("Error in readSample()\n");
-      temp = -10001;
-      hum = -10001;
-    }
+    temp = ag.sht.getTemperature();
+    hum = ag.sht.getRelativeHumidity();
   }
 }
 
@@ -320,7 +253,8 @@ void updateOLED() {
     String ln1;
 
     if (inUSAQI) {
-      ln1 = "AQI:" + String(PM_TO_AQI_US(pm25)) + " CO2:" + String(Co2);
+      ln1 = "AQI:" + String(ag.pms5003.convertPm25ToUsAqi(pm25)) +
+            " CO2:" + String(Co2);
     } else {
       ln1 = "PM:" + String(pm25) + " CO2:" + String(Co2);
     }
@@ -332,8 +266,7 @@ void updateOLED() {
     } else {
       ln3 = "C:" + String(temp) + " H:" + String(hum) + "%";
     }
-    //updateOLED2(ln1, ln2, ln3);
-    updateOLED3();
+    displayShowDashboard();
     setRGBledCO2color(Co2);
   }
 }
@@ -355,23 +288,23 @@ void inConf() {
     long pressDuration = releasedTime - pressedTime;
     if (pressDuration < 1000) {
       buttonConfig = buttonConfig + 1;
-      if (buttonConfig > 3) buttonConfig = 0;
+      if (buttonConfig > 3)
+        buttonConfig = 0;
     }
   }
 
   if (lastState == LOW && currentState == LOW) {
     long passedDuration = millis() - pressedTime;
     if (passedDuration > 4000) {
-      updateOLED2("Saved", "Release", "Button Now");
+      displayShowText("Saved", "Release", "Button Now");
       delay(1000);
-      updateOLED2("Rebooting", "in", "5 seconds");
+      displayShowText("Rebooting", "in", "5 seconds");
       delay(5000);
       EEPROM.write(addr, char(buttonConfig));
       EEPROM.commit();
       delay(1000);
       ESP.restart();
     }
-
   }
   lastState = currentState;
   delay(100);
@@ -381,23 +314,23 @@ void inConf() {
 void setConfig() {
   Serial.println("in setConfig");
   if (buttonConfig == 0) {
-    updateOLED2("Temp. in C", "PM in ug/m3", "Long Press Saves");
+    displayShowText("Temp. in C", "PM in ug/m3", "Long Press Saves");
     u8g2.setDisplayRotation(U8G2_R0);
     inF = false;
     inUSAQI = false;
   }
   if (buttonConfig == 1) {
-    updateOLED2("Temp. in C", "PM in US AQI", "Long Press Saves");
+    displayShowText("Temp. in C", "PM in US AQI", "Long Press Saves");
     u8g2.setDisplayRotation(U8G2_R0);
     inF = false;
     inUSAQI = true;
   } else if (buttonConfig == 2) {
-    updateOLED2("Temp. in F", "PM in ug/m3", "Long Press Saves");
+    displayShowText("Temp. in F", "PM in ug/m3", "Long Press Saves");
     u8g2.setDisplayRotation(U8G2_R0);
     inF = true;
     inUSAQI = false;
   } else if (buttonConfig == 3) {
-    updateOLED2("Temp. in F", "PM in US AQI", "Long Press Saves");
+    displayShowText("Temp. in F", "PM in US AQI", "Long Press Saves");
     u8g2.setDisplayRotation(U8G2_R0);
     inF = true;
     inUSAQI = true;
@@ -405,14 +338,13 @@ void setConfig() {
 }
 
 void sendPing() {
-  String payload = "{\"wifi\":" + String(WiFi.RSSI()) +
-    ", \"boot\":" + loopCount +
-    "}";
+  String payload =
+      "{\"wifi\":" + String(WiFi.RSSI()) + ", \"boot\":" + loopCount + "}";
 }
 
-void updateOLED2(String ln1, String ln2, String ln3) {
+void displayShowText(String ln1, String ln2, String ln3) {
   char buf[9];
-  u8g2.firstPage();
+  // u8g2.firstPage();
   u8g2.firstPage();
   do {
     u8g2.setFont(u8g2_font_t0_16_tf);
@@ -422,14 +354,17 @@ void updateOLED2(String ln1, String ln2, String ln3) {
   } while (u8g2.nextPage());
 }
 
-void updateOLED3() {
+void displayShowDashboard() {
   char buf[9];
-  u8g2.firstPage();
-  u8g2.firstPage();
-  do {
 
+  /** Clear display dashboard */
+  u8g2.firstPage();
+
+  /** Show content to dashboard */
+  do {
     u8g2.setFont(u8g2_font_t0_16_tf);
 
+    /** Show temperature */
     if (inF) {
       if (temp > -10001) {
         float tempF = (temp * 9 / 5) + 32;
@@ -447,6 +382,7 @@ void updateOLED3() {
       u8g2.drawUTF8(1, 10, buf);
     }
 
+    /** Show humidity */
     if (hum >= 0) {
       sprintf(buf, "%d%%", hum);
     } else {
@@ -456,12 +392,18 @@ void updateOLED3() {
       u8g2.drawStr(97, 10, buf);
     } else {
       u8g2.drawStr(105, 10, buf);
-      // there might also be single digits, not considered, sprintf might actually support a leading space
+      // there might also be single digits, not considered, sprintf might
+      // actually support a leading space
     }
 
+    /** Draw horizontal line */
     u8g2.drawLine(1, 13, 128, 13);
+
+    /** Show CO2 label */
     u8g2.setFont(u8g2_font_t0_12_tf);
     u8g2.drawUTF8(1, 27, "CO2");
+
+    /** Show CO2 value */
     u8g2.setFont(u8g2_font_t0_22b_tf);
     if (Co2 > 0) {
       sprintf(buf, "%d", Co2);
@@ -469,16 +411,23 @@ void updateOLED3() {
       sprintf(buf, "%s", "-");
     }
     u8g2.drawStr(1, 48, buf);
+
+    /** Show CO2 value index */
     u8g2.setFont(u8g2_font_t0_12_tf);
     u8g2.drawStr(1, 61, "ppm");
+
+    /** Draw vertical line */
     u8g2.drawLine(45, 15, 45, 64);
+
+    /** Draw PM2.5 label */
     u8g2.setFont(u8g2_font_t0_12_tf);
     u8g2.drawStr(48, 27, "PM2.5");
-    u8g2.setFont(u8g2_font_t0_22b_tf);
 
+    /** Draw PM2.5 value */
+    u8g2.setFont(u8g2_font_t0_22b_tf);
     if (inUSAQI) {
       if (pm25 >= 0) {
-        sprintf(buf, "%d", PM_TO_AQI_US(pm25));
+        sprintf(buf, "%d", ag.pms5003.convertPm25ToUsAqi(pm25));
       } else {
         sprintf(buf, "%s", "-");
       }
@@ -496,15 +445,22 @@ void updateOLED3() {
       u8g2.drawUTF8(48, 61, "ug/m³");
     }
 
+    /** Draw vertical line */
     u8g2.drawLine(82, 15, 82, 64);
+
+    /** Draw TVOC label */
     u8g2.setFont(u8g2_font_t0_12_tf);
     u8g2.drawStr(85, 27, "TVOC:");
+
+    /** Draw TVOC value */
     if (TVOC >= 0) {
       sprintf(buf, "%d", TVOC);
     } else {
       sprintf(buf, "%s", "-");
     }
     u8g2.drawStr(85, 39, buf);
+
+    /** Draw NOx label */
     u8g2.drawStr(85, 53, "NOx:");
     if (NOX >= 0) {
       sprintf(buf, "%d", NOX);
@@ -512,29 +468,30 @@ void updateOLED3() {
       sprintf(buf, "%s", "-");
     }
     u8g2.drawStr(85, 63, buf);
-
   } while (u8g2.nextPage());
 }
 
 void sendToServer() {
   if (currentMillis - previoussendToServer >= sendToServerInterval) {
     previoussendToServer += sendToServerInterval;
-    String payload = "{\"wifi\":" + String(WiFi.RSSI()) +
-      (Co2 < 0 ? "" : ", \"rco2\":" + String(Co2)) +
-      (pm01 < 0 ? "" : ", \"pm01\":" + String(pm01)) +
-      (pm25 < 0 ? "" : ", \"pm02\":" + String(pm25)) +
-      (pm10 < 0 ? "" : ", \"pm10\":" + String(pm10)) +
-      (pm03PCount < 0 ? "" : ", \"pm003_count\":" + String(pm03PCount)) +
-      (TVOC < 0 ? "" : ", \"tvoc_index\":" + String(TVOC)) +
-      (NOX < 0 ? "" : ", \"nox_index\":" + String(NOX)) +
-      ", \"atmp\":" + String(temp) +
-      (hum < 0 ? "" : ", \"rhum\":" + String(hum)) +
-      ", \"boot\":" + loopCount +
-      "}";
+    String payload =
+        "{\"wifi\":" + String(WiFi.RSSI()) +
+        (Co2 < 0 ? "" : ", \"rco2\":" + String(Co2)) +
+        (pm01 < 0 ? "" : ", \"pm01\":" + String(pm01)) +
+        (pm25 < 0 ? "" : ", \"pm02\":" + String(pm25)) +
+        (pm10 < 0 ? "" : ", \"pm10\":" + String(pm10)) +
+        (pm03PCount < 0 ? "" : ", \"pm003_count\":" + String(pm03PCount)) +
+        (TVOC < 0 ? "" : ", \"tvoc_index\":" + String(TVOC)) +
+        (NOX < 0 ? "" : ", \"nox_index\":" + String(NOX)) +
+        ", \"atmp\":" + String(temp) +
+        (hum < 0 ? "" : ", \"rhum\":" + String(hum)) +
+        ", \"boot\":" + loopCount + "}";
 
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println(payload);
-      String POSTURL = APIROOT + "sensors/airgradient:" + String(getNormalizedMac()) + "/measures";
+      String POSTURL = APIROOT +
+                       "sensors/airgradient:" + String(getNormalizedMac()) +
+                       "/measures";
       Serial.println(POSTURL);
       WiFiClient client;
       HTTPClient http;
@@ -563,25 +520,19 @@ void countdown(int from) {
   debug("\n");
 }
 
-void resetWatchdog() {
-  Serial.println("Watchdog reset");
-  digitalWrite(2, HIGH);
-  delay(20);
-  digitalWrite(2, LOW);
-}
+void resetWatchdog() { ag.watchdog.reset(); }
 
 // Wifi Manager
 void connectToWifi() {
   WiFiManager wifiManager;
-  //WiFi.disconnect(); //to delete previous saved hotspot
+  // WiFi.disconnect(); //to delete previous saved hotspot
   String HOTSPOT = "AG-" + String(getNormalizedMac());
-  updateOLED2("180s to connect", "to Wifi Hotspot", HOTSPOT);
+  displayShowText("180s to connect", "to Wifi Hotspot", HOTSPOT);
   wifiManager.setTimeout(180);
-  if (!wifiManager.autoConnect((const char * ) HOTSPOT.c_str())) {
+  if (!wifiManager.autoConnect((const char *)HOTSPOT.c_str())) {
     Serial.println("failed to connect and hit timeout");
     delay(6000);
   }
-
 }
 
 void debug(String msg) {
@@ -612,97 +563,94 @@ String getNormalizedMac() {
 }
 
 void setRGBledCO2color(int co2Value) {
-  if (co2Value >= 300 && co2Value < 800) setRGBledColor('g');
-  if (co2Value >= 800 && co2Value < 1000) setRGBledColor('y');
-  if (co2Value >= 1000 && co2Value < 1500) setRGBledColor('o');
-  if (co2Value >= 1500 && co2Value < 2000) setRGBledColor('r');
-  if (co2Value >= 2000 && co2Value < 3000) setRGBledColor('p');
-  if (co2Value >= 3000 && co2Value < 10000) setRGBledColor('z');
+  if (co2Value >= 300 && co2Value < 800)
+    setRGBledColor('g');
+  if (co2Value >= 800 && co2Value < 1000)
+    setRGBledColor('y');
+  if (co2Value >= 1000 && co2Value < 1500)
+    setRGBledColor('o');
+  if (co2Value >= 1500 && co2Value < 2000)
+    setRGBledColor('r');
+  if (co2Value >= 2000 && co2Value < 3000)
+    setRGBledColor('p');
+  if (co2Value >= 3000 && co2Value < 10000)
+    setRGBledColor('z');
 }
 
 void setRGBledColor(char color) {
   if (useRGBledBar) {
-    //pixels.clear();
     switch (color) {
     case 'g':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(0, 255, 0));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(0, 255, 0);
       break;
     case 'y':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(255, 255, 0));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(255, 255, 0);
       break;
     case 'o':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(255, 128, 0));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(255, 128, 0);
       break;
     case 'r':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(255, 0, 0));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(255, 0, 0);
       break;
     case 'b':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(0, 0, 255));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(0, 0, 255);
       break;
     case 'w':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(255, 255, 255));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(255, 255, 255);
       break;
     case 'p':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(153, 0, 153));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(153, 0, 153);
       break;
     case 'z':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(102, 0, 0));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(102, 0, 0);
       break;
     case 'n':
-      for (int i = 0; i < 11; i++) {
-        pixels.setPixelColor(i, pixels.Color(0, 0, 0));
-        delay(100);
-        pixels.show();
-      }
+      ag.ledBar.setColor(0, 0, 0);
       break;
     default:
-      // if nothing else matches, do the default
-      // default is optional
       break;
     }
   }
 }
 
-// Calculate PM2.5 US AQI
-int PM_TO_AQI_US(int pm02) {
-  if (pm02 <= 12.0) return ((50 - 0) / (12.0 - .0) * (pm02 - .0) + 0);
-  else if (pm02 <= 35.4) return ((100 - 50) / (35.4 - 12.0) * (pm02 - 12.0) + 50);
-  else if (pm02 <= 55.4) return ((150 - 100) / (55.4 - 35.4) * (pm02 - 35.4) + 100);
-  else if (pm02 <= 150.4) return ((200 - 150) / (150.4 - 55.4) * (pm02 - 55.4) + 150);
-  else if (pm02 <= 250.4) return ((300 - 200) / (250.4 - 150.4) * (pm02 - 150.4) + 200);
-  else if (pm02 <= 350.4) return ((400 - 300) / (350.4 - 250.4) * (pm02 - 250.4) + 300);
-  else if (pm02 <= 500.4) return ((500 - 400) / (500.4 - 350.4) * (pm02 - 350.4) + 400);
-  else return 500;
-};
+void boardInit(void) {
+  /** Init LED Bar */
+  ag.ledBar.begin();
+
+  /** Button init */
+  ag.button.begin();
+
+  /** Init sensor SGP41 */
+  if (ag.sgp41.begin(Wire) == false) {
+    Serial.println("SGP41 begin failed");
+    failedHandler();
+  }
+
+  /** INit SHT */
+  if (ag.sht.begin(Wire) == false) {
+    Serial.println("SHT begin failed");
+    failedHandler();
+  }
+
+  /** Init watchdog */
+  ag.watchdog.begin();
+
+  /** Init S8 CO2 sensor */
+  if (ag.s8.begin(Serial1) == false) {
+    Serial.println("S8 begin failed");
+    failedHandler();
+  }
+
+  /** Init PMS5003 */
+  if (ag.pms5003.begin(Serial0) == false) {
+    Serial.println("PMS5003 begin failed");
+    failedHandler();
+  }
+}
+
+void failedHandler(void) {
+  while (true) {
+    Serial.println("failed");
+    vTaskDelay(1000);
+  }
+}

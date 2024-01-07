@@ -7,6 +7,7 @@
 #include <U8g2lib.h>
 
 #define DEBUG true
+#define FW_VER      "1.0.0"
 
 AirGradient ag(BOARD_ONE_INDOOR_MONITOR_V9_0);
 
@@ -77,6 +78,8 @@ unsigned long pressedTime = 0;
 unsigned long releasedTime = 0;
 
 void failedHandle(void);
+void sensorInit(void);
+void dispBoot(void);
 
 void setup() {
   if (DEBUG) {
@@ -88,44 +91,7 @@ void setup() {
   const int I2C_SCL = ag.getI2cSclPin();
   Wire.begin(I2C_SDA, I2C_SCL);
 
-  /** Init LED Bar */
-  ag.ledBar.begin();
-
-  /** Init Display */
-  ag.display.begin(Wire);
-  ag.display.setTextColor(1);
-
-  /** Show display warning */
-  updateOLED2("Warming Up", "Serial Number:", String(getNormalizedMac()));
-
-  /** Init sensor SGP41 */
-  if (ag.sgp41.begin(Wire) == false) {
-    Serial.println("SGP41 begin failed");
-    failedHandle();
-  }
-  delay(300);
-
-  /** INit SHT */
-  if (ag.sht.begin(Wire) == false) {
-    Serial.println("SHT begin failed");
-    failedHandle();
-  }
-  delay(300);
-
-  /** Init watchdog */
-  ag.watchdog.begin();
-
-  /** Init S8 CO2 sensor */
-  if (ag.s8.begin(Serial1) == false) {
-    Serial.println("S8 begin failed");
-    failedHandle();
-  }
-
-  /** Init PMS5003 */
-  if (ag.pms5003.begin(Serial0) == false) {
-    Serial.println("PMS5003 begin failed");
-    failedHandle();
-  }
+  sensorInit();
 
   /** Init EEPROM */
   EEPROM.begin(512);
@@ -144,17 +110,17 @@ void setup() {
   setConfig();
   Serial.println("buttonConfig: " + String(buttonConfig));
 
-  updateOLED2("Press Button", "for LED test &", "offline mode");
+  displayShowText("Press Button", "for LED test &", "offline mode");
   delay(2000);
   if (ag.button.getState() == PushButton::BUTTON_PRESSED) {
     ledTest();
     return;
   }
 
-  updateOLED2("Press Button", "Now for", "Config Menu");
+  displayShowText("Press Button", "Now for", "Config Menu");
   delay(2000);
   if (ag.button.getState() == PushButton::BUTTON_PRESSED) {
-    updateOLED2("Entering", "Config Menu", "");
+    displayShowText("Entering", "Config Menu", "");
 
     delay(3000);
 
@@ -171,7 +137,7 @@ void setup() {
     Serial.println("IP address: ");
     Serial.println(WiFi.localIP());
   }
-  updateOLED2("Warming Up", "Serial Number:", String(getNormalizedMac()));
+  displayShowText("Warming Up", "Serial Number:", String(getNormalizedMac()));
 }
 
 void loop() {
@@ -185,7 +151,7 @@ void loop() {
 }
 
 void ledTest() {
-  updateOLED2("LED Test", "running", ".....");
+  displayShowText("LED Test", "running", ".....");
   setRGBledColor('r');
   delay(1000);
   setRGBledColor('g');
@@ -310,9 +276,9 @@ void inConf() {
   if (lastState == LOW && currentState == LOW) {
     long passedDuration = millis() - pressedTime;
     if (passedDuration > 4000) {
-      updateOLED2("Saved", "Release", "Button Now");
+      displayShowText("Saved", "Release", "Button Now");
       delay(1000);
-      updateOLED2("Rebooting", "in", "5 seconds");
+      displayShowText("Rebooting", "in", "5 seconds");
       delay(5000);
       EEPROM.write(addr, char(buttonConfig));
       EEPROM.commit();
@@ -328,23 +294,23 @@ void inConf() {
 void setConfig() {
   Serial.println("in setConfig");
   if (buttonConfig == 0) {
-    updateOLED2("Temp. in C", "PM in ug/m3", "Long Press Saves");
+    displayShowText("Temp. in C", "PM in ug/m3", "Long Press Saves");
     ag.display.setRotation(0);
     inF = false;
     inUSAQI = false;
   }
   if (buttonConfig == 1) {
-    updateOLED2("Temp. in C", "PM in US AQI", "Long Press Saves");
+    displayShowText("Temp. in C", "PM in US AQI", "Long Press Saves");
     ag.display.setRotation(0);
     inF = false;
     inUSAQI = true;
   } else if (buttonConfig == 2) {
-    updateOLED2("Temp. in F", "PM in ug/m3", "Long Press Saves");
+    displayShowText("Temp. in F", "PM in ug/m3", "Long Press Saves");
     ag.display.setRotation(0);
     inF = true;
     inUSAQI = false;
   } else if (buttonConfig == 3) {
-    updateOLED2("Temp. in F", "PM in US AQI", "Long Press Saves");
+    displayShowText("Temp. in F", "PM in US AQI", "Long Press Saves");
     ag.display.setRotation(0);
     inF = true;
     inUSAQI = true;
@@ -356,7 +322,7 @@ void sendPing() {
       "{\"wifi\":" + String(WiFi.RSSI()) + ", \"boot\":" + loopCount + "}";
 }
 
-void updateOLED2(String ln1, String ln2, String ln3) {
+void displayShowText(String ln1, String ln2, String ln3) {
   ag.display.clear();
   ag.display.setCursor(1, 10);
   ag.display.setText(ln1);
@@ -401,18 +367,24 @@ void updateOLED3() {
     ag.display.setCursor(105, 10 - 9);
   }
   ag.display.setText(buf);
+
+
   ag.display.drawLine(1, 13, 128, 13, 1);
 
+  /** CO2 label */
   ag.display.setCursor(1, 27 - 9);
   ag.display.setText("CO2");
 
+  /** CO2 value */
   if (Co2 > 0) {
     sprintf(buf, "%d", Co2);
   } else {
     sprintf(buf, "%s", "-");
   }
+  ag.display.setFont(Display::FontFreeMono9Bold);
   ag.display.setCursor(1, 48 - 9);
   ag.display.setText(buf);
+  ag.display.setFont(Display::FontDefault);
 
   ag.display.setCursor(1, 61 - 9);
   ag.display.setText("ppm");
@@ -450,7 +422,7 @@ void updateOLED3() {
   ag.display.drawLine(82, 15, 82, 64, 1);
 
   ag.display.setCursor(85, 27 - 9);
-  ag.display.setText("TVOC");
+  ag.display.setText("TVOC:");
 
   if (TVOC >= 0) {
     sprintf(buf, "%d", TVOC);
@@ -532,7 +504,7 @@ void connectToWifi() {
   WiFiManager wifiManager;
   // WiFi.disconnect(); //to delete previous saved hotspot
   String HOTSPOT = "AG-" + String(getNormalizedMac());
-  updateOLED2("180s to connect", "to Wifi Hotspot", HOTSPOT);
+  displayShowText("180s to connect", "to Wifi Hotspot", HOTSPOT);
   wifiManager.setTimeout(180);
   if (!wifiManager.autoConnect((const char *)HOTSPOT.c_str())) {
     Serial.println("failed to connect and hit timeout");
@@ -628,29 +600,57 @@ void setRGBledColor(char color) {
   }
 }
 
-// Calculate PM2.5 US AQI
-int PM_TO_AQI_US(int pm02) {
-  if (pm02 <= 12.0)
-    return ((50 - 0) / (12.0 - .0) * (pm02 - .0) + 0);
-  else if (pm02 <= 35.4)
-    return ((100 - 50) / (35.4 - 12.0) * (pm02 - 12.0) + 50);
-  else if (pm02 <= 55.4)
-    return ((150 - 100) / (55.4 - 35.4) * (pm02 - 35.4) + 100);
-  else if (pm02 <= 150.4)
-    return ((200 - 150) / (150.4 - 55.4) * (pm02 - 55.4) + 150);
-  else if (pm02 <= 250.4)
-    return ((300 - 200) / (250.4 - 150.4) * (pm02 - 150.4) + 200);
-  else if (pm02 <= 350.4)
-    return ((400 - 300) / (350.4 - 250.4) * (pm02 - 250.4) + 300);
-  else if (pm02 <= 500.4)
-    return ((500 - 400) / (500.4 - 350.4) * (pm02 - 350.4) + 400);
-  else
-    return 500;
-};
-
 void failedHandle(void) {
   while (1) {
     Serial.println("failed");
     delay(1000);
   }
+}
+
+void sensorInit(void) {
+  /** Init LED Bar */
+  ag.ledBar.begin();
+
+  /** Init Display */
+  ag.display.begin(Wire);
+  ag.display.setTextColor(1);
+
+  /** Show display warning */
+  dispBoot();
+  delay(2000);
+  displayShowText("Warming Up", "Serial Number:", String(getNormalizedMac()));
+
+  /** Init sensor SGP41 */
+  if (ag.sgp41.begin(Wire) == false) {
+    Serial.println("SGP41 begin failed");
+    failedHandle();
+  }
+  delay(300);
+
+  /** INit SHT */
+  if (ag.sht.begin(Wire) == false) {
+    Serial.println("SHT begin failed");
+    failedHandle();
+  }
+  delay(300);
+
+  /** Init watchdog */
+  ag.watchdog.begin();
+
+  /** Init S8 CO2 sensor */
+  if (ag.s8.begin(Serial1) == false) {
+    Serial.println("S8 begin failed");
+    failedHandle();
+  }
+
+  /** Init PMS5003 */
+  if (ag.pms5003.begin(Serial0) == false) {
+    Serial.println("PMS5003 begin failed");
+    failedHandle();
+  }
+}
+
+void dispBoot(void)
+{
+  displayShowText("One V9", "Fw Ver: " + String(FW_VER), "Lib Ver: " + ag.getVersion());
 }
