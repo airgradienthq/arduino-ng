@@ -76,11 +76,26 @@ bool PMS5003::begin(void) {
   pms = new Conplug_PMS5003T(this->_serial);
 #endif
 
-  if (pms->readPms() == nullptr) {
-    AgLog("Communication fail");
-    return false;
+  // Poll to get device info
+  uint32_t stime = millis();
+  while(1)
+  {
+    if (pms->readPms() != nullptr) {
+      break;
+    }
+
+    uint32_t ms = (uint32_t)(millis() - stime);
+    if(ms >= 5000)
+    {
+      AgLog("Get device info invalid after 5 seconds");
+      return false;
+    }
+
+    // Relax 100 ms
+    delay(100);
   }
 
+  // Get device type
   if (pms->readDeviceType() != Conplug_PMS5003T::PMS5003T) {
     AgLog("Device type invalid");
   }
