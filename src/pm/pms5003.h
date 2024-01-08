@@ -2,7 +2,6 @@
 #define _AIR_GRADIENT_PMS5003_H_
 
 #include "../bsp/BoardDef.h"
-#include "Conplug_PMS5003T.h"
 #include "Stream.h"
 #include "PMS.h"
 
