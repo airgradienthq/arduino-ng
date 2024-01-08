@@ -2,7 +2,7 @@
 #define _PMS5003T_H_
 
 #include "../bsp/BoardDef.h"
-#include "Conplug_PMS5003T.h"
+#include "PMS.h"
 #include "Stream.h"
 
 class PMS5003T {
@@ -38,7 +38,8 @@ private:
 
   bool begin(void);
   int pm25ToAQI(int pm02);
-  Conplug_PMS5003T *pms;
+  PMS pms;
+  PMS::DATA pmsData;
   bool checkInit(void);
 };
 

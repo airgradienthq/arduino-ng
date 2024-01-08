@@ -70,35 +70,17 @@ bool PMS5003::begin(void) {
   SoftwareSerial *uart =
       new SoftwareSerial(bsp->PMS5003.uart_tx_pin, bsp->PMS5003.uart_rx_pin);
   uart->begin(9600);
-  pms = new Conplug_PMS5003T(uart);
+  if (pms.begin(uart) == false) {
+    AgLog("PMS failed");
+    return false;
+  }
 #else
   this->_serial->begin(9600);
-  pms = new Conplug_PMS5003T(this->_serial);
+  if (pms.begin(this->_serial) == false) {
+    AgLog("PMS failed");
+    return false;
+  }
 #endif
-
-  // Poll to get device info
-  uint32_t stime = millis();
-  while(1)
-  {
-    if (pms->readPms() != nullptr) {
-      break;
-    }
-
-    uint32_t ms = (uint32_t)(millis() - stime);
-    if(ms >= 5000)
-    {
-      AgLog("Get device info invalid after 5 seconds");
-      return false;
-    }
-
-    // Relax 100 ms
-    delay(100);
-  }
-
-  // Get device type
-  if (pms->readDeviceType() != Conplug_PMS5003T::PMS5003T) {
-    AgLog("Device type invalid");
-  }
 
   this->_isInit = true;
   return true;
@@ -141,10 +123,7 @@ bool PMS5003::readData(void) {
     return false;
   }
 
-  if (pms->readPms() == nullptr) {
-    return false;
-  }
-  return true;
+  return pms.readUntil(pmsData);
 }
 
 /**
@@ -152,28 +131,28 @@ bool PMS5003::readData(void) {
  *
  * @return int PM1.0 index
  */
-int PMS5003::getPm01Ae(void) { return pms->pm1_0(); }
+int PMS5003::getPm01Ae(void) { return pmsData.PM_AE_UG_1_0; }
 
 /**
  * @brief Read PM2.5 must call this function after @ref readData success
  *
  * @return int PM2.5 index
  */
-int PMS5003::getPm25Ae(void) { return pms->pm2_5(); }
+int PMS5003::getPm25Ae(void) { return pmsData.PM_AE_UG_2_5; }
 
 /**
  * @brief Read PM10.0 must call this function after @ref readData success
  *
  * @return int PM10.0 index
  */
-int PMS5003::getPm10Ae(void) { return pms->pm10_0(); }
+int PMS5003::getPm10Ae(void) { return pmsData.PM_AE_UG_10_0; }
 
 /**
  * @brief Read PM3.0 must call this function after @ref readData success
  *
  * @return int PM3.0 index
  */
-int PMS5003::getPm03ParticleCount(void) { return pms->pm3_0(); }
+int PMS5003::getPm03ParticleCount(void) { return pmsData.PM_RAW_0_3; }
 
 /**
  * @brief Convert PM2.5 to US AQI

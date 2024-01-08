@@ -4,6 +4,7 @@
 #include "../bsp/BoardDef.h"
 #include "Conplug_PMS5003T.h"
 #include "Stream.h"
+#include "PMS.h"
 
 class PMS5003 {
 public:
@@ -24,6 +25,7 @@ public:
 private:
   bool _isInit = false;
   BoardType _boardDef;
+  PMS pms;
   const BoardDef *bsp;
 #if defined(ESP8266)
   Stream *_debugStream;
@@ -31,7 +33,8 @@ private:
 #else
   HardwareSerial *_serial;
 #endif
-  Conplug_PMS5003T *pms;
+  // Conplug_PMS5003T *pms;
+  PMS::DATA pmsData;
 
   bool begin(void);
   bool checkInit(void);

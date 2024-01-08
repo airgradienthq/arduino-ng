@@ -70,37 +70,18 @@ bool PMS5003T::begin(void) {
   SoftwareSerial *uart =
       new SoftwareSerial(bsp->PMS5003.uart_tx_pin, bsp->PMS5003.uart_rx_pin);
   uart->begin(9600);
-  pms = new Conplug_PMS5003T(uart);
+  if (pms.begin(uart) == false) {
+    AgLog("PMS failed");
+    return false;
+  }
 #else
   this->_serial->begin(9600, SERIAL_8N1, bsp->PMS5003.uart_tx_pin,
                        bsp->PMS5003.uart_rx_pin);
-  pms = new Conplug_PMS5003T(this->_serial);
-#endif
-
-  // Poll to get device info
-  uint32_t stime = millis();
-  while(1)
-  {
-    if (pms->readPms() != nullptr) {
-      break;
-    }
-
-    uint32_t ms = (uint32_t)(millis() - stime);
-    if(ms >= 5000)
-    {
-      AgLog("Get device info invalid after 5 seconds");
-      return false;
-    }
-
-    // Relax 100 ms
-    delay(100);
-  }
-
-  // Get device type
-  if (pms->readDeviceType() != Conplug_PMS5003T::PMS5003T) {
-    AgLog("Type invalid");
+  if (pms.begin(this->_serial) == false) {
+    AgLog("PMS failed");
     return false;
   }
+#endif
 
   this->_isInit = true;
   return true;
@@ -143,10 +124,7 @@ bool PMS5003T::readData(void) {
     return false;
   }
 
-  if (this->pms->readPms() != nullptr) {
-    return true;
-  }
-  return false;
+  return pms.readUntil(pmsData);
 }
 
 /**
@@ -154,28 +132,28 @@ bool PMS5003T::readData(void) {
  *
  * @return int PM1.0 index
  */
-int PMS5003T::getPm01Ae(void) { return this->pms->pm1_0(); }
+int PMS5003T::getPm01Ae(void) { return pmsData.PM_AE_UG_1_0; }
 
 /**
  * @brief Read PM2.5 must call this function after @ref readData success
  *
  * @return int PM2.5 index
  */
-int PMS5003T::getPm25Ae(void) { return this->pms->pm2_5(); }
+int PMS5003T::getPm25Ae(void) { return pmsData.PM_AE_UG_2_5; }
 
 /**
  * @brief Read PM10.0 must call this function after @ref readData success
  *
  * @return int PM10.0 index
  */
-int PMS5003T::getPm10Ae(void) { return this->pms->pm10_0(); }
+int PMS5003T::getPm10Ae(void) { return pmsData.PM_AE_UG_10_0; }
 
 /**
  * @brief Read PM3.0 must call this function after @ref readData success
  *
  * @return int PM3.0 index
  */
-int PMS5003T::getPm03ParticleCount(void) { return this->pms->pm3_0(); }
+int PMS5003T::getPm03ParticleCount(void) { return pmsData.PM_RAW_0_3; }
 
 /**
  * @brief Convert PM2.5 to US AQI
@@ -190,14 +168,20 @@ int PMS5003T::convertPm25ToUsAqi(int pm25) { return this->pm25ToAQI(pm25); }
  *
  * @return float Degree Celcius
  */
-float PMS5003T::getTemperature(void) { return this->pms->temp(); }
+float PMS5003T::getTemperature(void) {
+  float temp = pmsData.AMB_TMP;
+  return temp / 10.0f;
+}
 
 /**
  * @brief Get humidity, Must call this method after  @ref readData() success
  *
  * @return float Percent (%)
  */
-float PMS5003T::getRelativeHumidity(void) { return this->pms->humi(); }
+float PMS5003T::getRelativeHumidity(void) {
+  float temp = pmsData.AMB_HUM;
+  return temp / 10.0f;
+}
 
 /**
  * @brief Check device initialized or not
